@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --app-bar-height: 64px;
+}
+
+.layout-full-page-content {
+  min-height: calc(100vh - var(--app-bar-height));
+}

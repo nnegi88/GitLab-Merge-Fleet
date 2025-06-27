@@ -1,0 +1,184 @@
+# GitLab Merge Fleet
+
+A modern, frontend-only GitLab multi-repository merge request management tool with AI-powered code reviews.
+
+## Features
+
+- **Multi-Repository Management**: View and manage merge requests across multiple GitLab repositories in a unified dashboard
+- **AI Code Reviews**: Integrated Google Gemini 2.5 Flash for intelligent code review and analysis
+- **Modern UI**: Built with Vue.js 3 and Vuetify 3 Material Design components
+- **Real-time Updates**: Efficient data fetching with TanStack Vue Query and automatic caching
+- **Secure**: User-provided tokens stored encrypted in browser localStorage
+- **No Backend Required**: Fully frontend-only architecture
+
+## Technology Stack
+
+- **Frontend**: Vue.js 3.4+ with Composition API
+- **UI Framework**: Vuetify 3 with Material Design 3 blueprint
+- **Build Tool**: Vite 5+ for fast development and builds
+- **State Management**: Pinia for reactive state management
+- **Data Fetching**: TanStack Vue Query with intelligent caching
+- **Icons**: Material Design Icons (@mdi/font)
+- **Markdown**: Professional rendering with `marked` library
+- **AI Integration**: Google Gemini 2.5 Flash Preview for code reviews
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+ 
+- GitLab Personal Access Token with `api`, `read_repository`, `write_repository` scopes
+- Google Gemini API key (optional, for AI reviews)
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/gitlab-merge-fleet.git
+cd gitlab-merge-fleet
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Start development server:
+```bash
+npm run dev
+```
+
+4. Open http://localhost:4000 and configure your GitLab token in Settings
+
+### Build for Production
+
+```bash
+npm run build
+npm run preview
+```
+
+## Configuration
+
+### GitLab Setup
+1. Navigate to Settings page in the application
+2. Add your GitLab base URL: `https://gitlab.example.com`
+3. Provide your GitLab Personal Access Token
+4. Configure repository filters as needed
+
+### AI Reviews (Optional)
+1. Obtain a Google Gemini API key
+2. Add it in the Settings page
+3. AI review functionality will be enabled automatically
+
+## Project Structure
+
+```
+src/
+├── components/          # Reusable Vue components
+│   ├── FilterBar.vue   # Advanced filtering interface
+│   ├── Layout.vue      # Application layout wrapper
+│   └── MergeRequestList.vue # MR list display
+├── pages/              # Page components
+│   ├── Dashboard.vue   # Main dashboard
+│   ├── Settings.vue    # Configuration page
+│   └── Setup.vue       # Initial setup wizard
+├── stores/             # Pinia state stores
+│   └── authStore.js    # Authentication state
+├── api/                # API integration
+│   ├── gitlab.js       # GitLab API client
+│   └── gemini.js       # AI review service
+├── utils/              # Utility functions
+│   └── dateUtils.js    # Date formatting
+└── plugins/            # Vue plugins
+    └── vuetify.js      # Vuetify configuration
+```
+
+## Development
+
+### Available Commands
+
+```bash
+# Development server (port 4000)
+npm run dev
+
+# Production build
+npm run build
+
+# Preview production build
+npm run preview
+
+# Lint code
+npm run lint
+```
+
+### Development Guidelines
+
+- Use Vuetify 3 components exclusively for UI consistency
+- Follow Material Design 3 patterns and spacing
+- Use Material Design Icons (mdi-*) for all iconography
+- Implement proper loading states and error handling
+- Test with GitLab Enterprise Edition 14.9.0-ee compatibility
+
+## Features in Detail
+
+### Multi-Repository Dashboard
+- Unified view of merge requests across selected repositories
+- Advanced filtering by state, author, labels, and date ranges
+- Real-time pipeline status with GitLab 14.9 compatibility
+- Sortable columns and pagination
+
+### AI Code Reviews
+- Complete diff analysis using Google Gemini 2.5 Flash
+- Structured markdown output with professional rendering
+- One-click posting of reviews as GitLab comments
+- Configurable review parameters
+
+### Bulk Operations
+- Create multiple merge requests across repositories
+- Bulk branch creation with consistent naming
+- Template-based MR descriptions
+
+## GitLab Compatibility
+
+Designed for GitLab Enterprise Edition 14.9.0-ee with:
+- Custom pipeline enrichment for older GitLab versions
+- Proper handling of EE-specific features (approval rules, weights)
+- Efficient API usage with rate limiting considerations
+
+## Security
+
+- Personal Access Tokens encrypted using Web Crypto API
+- All sensitive data stored locally in browser
+- No server-side storage or transmission of credentials
+- HTTPS-only communication with GitLab instance
+
+## Deployment
+
+The application can be deployed to any static hosting service. Build the production files:
+
+```bash
+npm run build
+```
+
+The built files will be in the `dist/` directory and can be served from any web server or CDN.
+
+### Configuration Files
+- `.env.example` - Example environment variables
+
+## Contributing
+
+1. Create a feature branch from `main`
+2. Make your changes following the development guidelines
+3. Test thoroughly with the development server
+4. Run `npm run lint` to ensure code quality
+5. Create a merge request with a clear description
+
+## Support
+
+For issues and questions:
+- Create an issue in the GitLab repository
+- Review the CLAUDE.md file for detailed implementation notes
+
+## License
+
+MIT License - see LICENSE file for details.
