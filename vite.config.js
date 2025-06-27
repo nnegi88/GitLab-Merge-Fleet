@@ -10,7 +10,7 @@ export default defineConfig({
       autoImport: true,
     }),
   ],
-  base: '/',
+  base: '/GitLab-Merge-Fleet/',
   publicDir: 'public',
   server: {
     port: 4000,

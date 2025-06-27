@@ -154,13 +154,28 @@ Designed for GitLab Enterprise Edition 14.9.0-ee with:
 
 ## Deployment
 
-The application can be deployed to any static hosting service. Build the production files:
+### GitHub Pages (Automatic)
+
+The project includes GitHub Actions workflow for automatic deployment to GitHub Pages:
+
+1. Push changes to the `main` branch
+2. GitHub Actions will automatically build and deploy
+3. Access your deployment at: `https://[username].github.io/GitLab-Merge-Fleet/`
+
+### Manual Deployment
+
+For other static hosting services:
 
 ```bash
 npm run build
 ```
 
 The built files will be in the `dist/` directory and can be served from any web server or CDN.
+
+For manual GitHub Pages deployment:
+```bash
+npm run deploy
+```
 
 ### Configuration Files
 - `.env.example` - Example environment variables
