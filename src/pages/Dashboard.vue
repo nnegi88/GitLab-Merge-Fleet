@@ -17,6 +17,29 @@
   </div>
 
   <div v-else>
+    <!-- Welcome guidance for new users -->
+    <v-alert
+      v-if="(!data || data.length === 0) && !isLoading"
+      variant="tonal"
+      type="info"
+      icon="mdi-information-outline"
+      class="mb-6"
+    >
+      <template v-slot:title>
+        Welcome to GitLab Merge Fleet!
+      </template>
+      <div class="text-body-2">
+        Get started by exploring these features:
+        <div class="mt-2">
+          • <strong>Bulk Create Branches:</strong> Create feature branches across multiple repositories
+          <br>
+          • <strong>Bulk Create MRs:</strong> Create merge requests for related changes
+          <br>
+          • <strong>AI Repository Review:</strong> Get AI-powered code analysis and recommendations
+        </div>
+      </div>
+    </v-alert>
+    
     <div class="d-flex align-center justify-space-between mb-6">
       <h1 class="text-h4 font-weight-bold">Merge Requests</h1>
       <div class="d-flex ga-3">

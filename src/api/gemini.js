@@ -1,6 +1,36 @@
+import { PromptBuilderService } from '../services/promptBuilder.js'
+import { ReviewParserService } from '../services/reviewParser.js'
+
+/**
+ * Gemini AI API service for code reviews
+ * Now uses modular services for better extensibility
+ * 
+ * EXTENSION POINTS:
+ * 1. Replace PromptBuilderService with custom implementation via constructor injection
+ * 2. Replace ReviewParserService with custom implementation via constructor injection
+ * 3. Override generateContent() to implement custom API communication
+ * 4. Override reviewMergeRequest() to customize merge request review workflow
+ * 5. Override reviewRepository() to customize repository review workflow
+ * 6. Add new review types (security, performance, accessibility)
+ * 7. Implement custom error handling and retry logic
+ * 8. Add support for different AI providers (OpenAI, Anthropic, etc.)
+ * 
+ * USAGE:
+ * const geminiAPI = new GeminiAPI()
+ * const review = await geminiAPI.reviewRepository(repositoryData, files, options)
+ * 
+ * CUSTOM SERVICES:
+ * const customPromptBuilder = new CustomPromptBuilderService()
+ * const customReviewParser = new CustomReviewParserService()
+ * const geminiAPI = new GeminiAPI(customPromptBuilder, customReviewParser)
+ */
 class GeminiAPI {
-  constructor() {
+  constructor(promptBuilderService = null, reviewParserService = null) {
     this.baseURL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent'
+    
+    // EXTENSION POINT: Allow custom service injection
+    this.promptBuilder = promptBuilderService || new PromptBuilderService()
+    this.reviewParser = reviewParserService || new ReviewParserService()
   }
 
   getApiKey() {
@@ -61,149 +91,16 @@ class GeminiAPI {
   }
 
   async reviewMergeRequest(mrData, diffData) {
-    const prompt = this.buildReviewPrompt(mrData, diffData)
+    const prompt = this.promptBuilder.buildMergeRequestPrompt(mrData, diffData)
     
     try {
       const review = await this.generateContent(prompt)
-      return this.parseReview(review)
+      return this.reviewParser.parseMergeRequestReview(review)
     } catch (error) {
       throw new Error(`AI Review failed: ${error.message}`)
     }
   }
 
-  truncateDiff(diffData, maxLength = 8000) {
-    if (!diffData || diffData.length <= maxLength) {
-      return diffData
-    }
-    
-    // Try to truncate at a reasonable line boundary
-    const truncated = diffData.substring(0, maxLength)
-    const lastNewline = truncated.lastIndexOf('\n')
-    
-    if (lastNewline > maxLength * 0.8) {
-      return truncated.substring(0, lastNewline) + '\n\n... (diff truncated for analysis - showing first ' + Math.round(lastNewline / diffData.length * 100) + '% of changes)'
-    }
-    
-    return truncated + '\n\n... (diff truncated for analysis)'
-  }
-
-  buildReviewPrompt(mrData, diffData) {
-    return `You are an expert code reviewer. Analyze this GitLab merge request and provide constructive feedback.
-
-**Merge Request Details:**
-- Title: ${mrData.title}
-- Description: ${mrData.description || 'No description provided'}
-- Author: ${mrData.author?.name || 'Unknown'}
-- Source Branch: ${mrData.source_branch}
-- Target Branch: ${mrData.target_branch}
-- Labels: ${mrData.labels?.join(', ') || 'None'}
-
-**Code Changes:**
-\`\`\`diff
-${diffData}
-\`\`\`
-
-Provide a structured review with these sections. Do NOT wrap your response in code blocks. Write plain markdown:
-
-## 🔍 Overall Assessment
-Brief summary of the changes and general code quality.
-
-## 🐛 Code Quality Issues
-Any bugs, logic errors, or potential issues found. If none, write "No significant issues identified."
-
-## 🎨 Style & Best Practices
-Code style, naming conventions, and best practices. If good, write "Code follows good practices."
-
-## ⚡ Performance Considerations
-Performance implications or optimization opportunities. If none, write "No performance concerns."
-
-## 🔒 Security Concerns
-Security vulnerabilities or concerns. If none, write "No security issues identified."
-
-## 💡 Suggestions
-Specific improvements or recommendations.
-
-**Requirements:**
-- Use ## for main sections
-- Use - for bullet points
-- Use \`backticks\` for inline code
-- Use \`\`\`language for code blocks
-- Be specific and actionable
-- Do NOT start with \`\`\`markdown or wrap in code blocks
-- Write direct markdown content only`
-  }
-
-  parseReview(reviewText) {
-    // Clean up the response - remove markdown code block wrapper if present
-    let cleanedText = reviewText.trim()
-    
-    // Remove markdown code block wrapper if it exists
-    if (cleanedText.startsWith('```markdown')) {
-      cleanedText = cleanedText.replace(/^```markdown\s*/, '').replace(/```\s*$/, '')
-    } else if (cleanedText.startsWith('```')) {
-      cleanedText = cleanedText.replace(/^```\s*/, '').replace(/```\s*$/, '')
-    }
-    
-    // Extract different sections from the AI response
-    const sections = {
-      overall: '',
-      codeQuality: '',
-      style: '',
-      performance: '',
-      security: '',
-      suggestions: ''
-    }
-
-    // Try to parse structured sections using both old and new patterns
-    const overallMatch = cleanedText.match(/##\s*🔍\s*Overall Assessment\s*(.*?)(?=##|$)/s) ||
-                        cleanedText.match(/\*\*Overall Assessment\*\*:?\s*(.*?)(?=\*\*|$)/s)
-    if (overallMatch) sections.overall = overallMatch[1].trim()
-
-    const codeQualityMatch = cleanedText.match(/##\s*🐛\s*Code Quality Issues\s*(.*?)(?=##|$)/s) ||
-                            cleanedText.match(/\*\*Code Quality Issues\*\*:?\s*(.*?)(?=\*\*|$)/s)
-    if (codeQualityMatch) sections.codeQuality = codeQualityMatch[1].trim()
-
-    const styleMatch = cleanedText.match(/##\s*🎨\s*Style & Best Practices\s*(.*?)(?=##|$)/s) ||
-                      cleanedText.match(/\*\*Style & Best Practices\*\*:?\s*(.*?)(?=\*\*|$)/s)
-    if (styleMatch) sections.style = styleMatch[1].trim()
-
-    const performanceMatch = cleanedText.match(/##\s*⚡\s*Performance Considerations\s*(.*?)(?=##|$)/s) ||
-                             cleanedText.match(/\*\*Performance Considerations\*\*:?\s*(.*?)(?=\*\*|$)/s)
-    if (performanceMatch) sections.performance = performanceMatch[1].trim()
-
-    const securityMatch = cleanedText.match(/##\s*🔒\s*Security Concerns\s*(.*?)(?=##|$)/s) ||
-                          cleanedText.match(/\*\*Security Concerns\*\*:?\s*(.*?)(?=\*\*|$)/s)
-    if (securityMatch) sections.security = securityMatch[1].trim()
-
-    const suggestionsMatch = cleanedText.match(/##\s*💡\s*Suggestions\s*(.*?)(?=##|$)/s) ||
-                            cleanedText.match(/\*\*Suggestions\*\*:?\s*(.*?)(?=\*\*|$)/s)
-    if (suggestionsMatch) sections.suggestions = suggestionsMatch[1].trim()
-
-    return {
-      fullReview: cleanedText,
-      sections,
-      summary: this.generateSummary(sections)
-    }
-  }
-
-  generateSummary(sections) {
-    const issues = []
-    if (sections.codeQuality && sections.codeQuality.toLowerCase().includes('issue')) {
-      issues.push('code quality concerns')
-    }
-    if (sections.security && sections.security.toLowerCase().includes('concern')) {
-      issues.push('security considerations')
-    }
-    if (sections.performance && sections.performance.toLowerCase().includes('performance')) {
-      issues.push('performance implications')
-    }
-
-    if (issues.length === 0) {
-      return '✅ Code looks good overall with minor suggestions'
-    } else {
-      return `⚠️ Found ${issues.join(', ')}`
-    }
-  }
 
   // Repository review methods
   async reviewRepository(repositoryData, files, options = {}) {
@@ -211,13 +108,13 @@ Specific improvements or recommendations.
     
     try {
       // Generate the review prompt
-      const prompt = this.buildRepositoryReviewPrompt(repositoryData, files, { focus, depth })
+      const prompt = this.promptBuilder.buildRepositoryPrompt(repositoryData, files, options)
       
       // Get AI response
       const response = await this.generateContent(prompt)
       
       // Parse the structured response
-      const parsedReview = this.parseRepositoryReview(response)
+      const parsedReview = this.reviewParser.parseRepositoryReview(response)
       
       return {
         fullReview: response,
@@ -235,193 +132,6 @@ Specific improvements or recommendations.
     }
   }
 
-  buildRepositoryReviewPrompt(repositoryData, files, options) {
-    const { focus, depth } = options
-    
-    // Build file summaries for context
-    const fileSummaries = files.map(file => {
-      const lines = file.content ? file.content.split('\n').length : 0
-      return `### ${file.path}
-- **Type**: ${file.extension || 'unknown'}
-- **Size**: ${file.size || 0} bytes (${lines} lines)
-- **Content**: 
-\`\`\`${this.getLanguageFromExtension(file.extension)}
-${this.truncateContent(file.content, depth)}
-\`\`\``
-    }).join('\n\n')
-
-    const focusInstructions = this.getFocusInstructions(focus)
-    const depthInstructions = this.getDepthInstructions(depth)
-
-    return `# Repository Code Review Request
-
-## Repository Information
-- **Name**: ${repositoryData.project.name_with_namespace}
-- **Description**: ${repositoryData.project.description || 'No description'}
-- **Languages**: ${Object.keys(repositoryData.languages).join(', ')}
-- **Files Analyzed**: ${files.length} of ${repositoryData.totalFiles} total files
-
-## Analysis Scope
-${focusInstructions}
-${depthInstructions}
-
-## Files to Review
-${fileSummaries}
-
-## Review Requirements
-
-Provide a comprehensive code review with these sections. Write in clean markdown format:
-
-## 🏗️ Repository Overview
-Brief assessment of the overall repository structure, architecture, and purpose.
-
-## 📊 Code Quality Assessment
-Overall code quality, consistency, and maintainability across the codebase.
-
-## 🔒 Security Analysis
-Security vulnerabilities, best practices, and potential risks identified.
-
-## ⚡ Performance Insights
-Performance considerations, optimization opportunities, and efficiency improvements.
-
-## 🎯 Architecture & Design
-Code organization, design patterns, and architectural decisions.
-
-## 📁 File-Level Insights
-Specific insights for individual files, focusing on the most critical issues.
-
-## 🚀 Recommendations
-Prioritized list of improvements and next steps.
-
-## 📋 Summary
-Executive summary with key findings and overall assessment.
-
-**Guidelines:**
-- Use ## for main sections
-- Use ### for subsections
-- Use - for bullet points
-- Use \`backticks\` for inline code and file names
-- Use \`\`\`language for code blocks
-- Be specific and actionable
-- Prioritize issues by impact
-- Consider the repository's context and purpose
-- Write direct markdown content only (no code block wrappers)`
-  }
-
-  parseRepositoryReview(reviewText) {
-    // Clean up the response
-    let cleanedText = reviewText.trim()
-    
-    if (cleanedText.startsWith('```markdown')) {
-      cleanedText = cleanedText.replace(/^```markdown\s*/, '').replace(/```\s*$/, '')
-    } else if (cleanedText.startsWith('```')) {
-      cleanedText = cleanedText.replace(/^```\s*/, '').replace(/```\s*$/, '')
-    }
-
-    // Extract sections
-    const sections = {
-      overview: this.extractSection(cleanedText, '🏗️ Repository Overview'),
-      codeQuality: this.extractSection(cleanedText, '📊 Code Quality Assessment'),
-      security: this.extractSection(cleanedText, '🔒 Security Analysis'),
-      performance: this.extractSection(cleanedText, '⚡ Performance Insights'),
-      architecture: this.extractSection(cleanedText, '🎯 Architecture & Design'),
-      fileInsights: this.extractSection(cleanedText, '📁 File-Level Insights'),
-      recommendations: this.extractSection(cleanedText, '🚀 Recommendations'),
-      summary: this.extractSection(cleanedText, '📋 Summary')
-    }
-
-    return {
-      sections,
-      fullReview: cleanedText
-    }
-  }
-
-  getFocusInstructions(focus) {
-    const focusMap = {
-      comprehensive: 'Analyze all aspects: security, performance, code quality, architecture, and best practices.',
-      security: 'Focus primarily on security vulnerabilities, authentication, authorization, input validation, and secure coding practices.',
-      performance: 'Focus on performance bottlenecks, optimization opportunities, resource usage, and scalability concerns.',
-      quality: 'Focus on code quality, maintainability, readability, testing, and adherence to best practices.',
-      architecture: 'Focus on code organization, design patterns, separation of concerns, and overall system design.'
-    }
-    return `**Focus Area**: ${focusMap[focus] || focusMap.comprehensive}`
-  }
-
-  getDepthInstructions(depth) {
-    const depthMap = {
-      quick: 'Provide a high-level overview with key issues and recommendations. Focus on the most critical findings.',
-      standard: 'Provide a thorough analysis with detailed insights and specific recommendations for improvement.',
-      deep: 'Provide comprehensive analysis including detailed code examples, alternative approaches, and extensive recommendations.'
-    }
-    return `**Analysis Depth**: ${depthMap[depth] || depthMap.standard}`
-  }
-
-  getLanguageFromExtension(ext) {
-    const langMap = {
-      '.js': 'javascript',
-      '.jsx': 'jsx',
-      '.ts': 'typescript',
-      '.tsx': 'tsx',
-      '.vue': 'vue',
-      '.py': 'python',
-      '.java': 'java',
-      '.cs': 'csharp',
-      '.rb': 'ruby',
-      '.go': 'go',
-      '.php': 'php',
-      '.swift': 'swift',
-      '.kt': 'kotlin',
-      '.scala': 'scala',
-      '.cpp': 'cpp',
-      '.c': 'c',
-      '.rs': 'rust',
-      '.html': 'html',
-      '.css': 'css',
-      '.scss': 'scss',
-      '.json': 'json',
-      '.yml': 'yaml',
-      '.yaml': 'yaml',
-      '.md': 'markdown'
-    }
-    return langMap[ext] || 'text'
-  }
-
-  truncateContent(content, depth) {
-    if (!content) return ''
-    
-    const maxLines = {
-      quick: 20,
-      standard: 50,
-      deep: 100
-    }
-    
-    const lines = content.split('\n')
-    const limit = maxLines[depth] || maxLines.standard
-    
-    if (lines.length <= limit) {
-      return content
-    }
-    
-    return lines.slice(0, limit).join('\n') + `\n... (${lines.length - limit} more lines)`
-  }
-
-  extractSection(text, sectionTitle) {
-    // Try to extract section content using various patterns
-    const patterns = [
-      new RegExp(`##\\s*${sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*(.*?)(?=##|$)`, 's'),
-      new RegExp(`\\*\\*${sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\*\\*:?\\s*(.*?)(?=\\*\\*|$)`, 's'),
-      new RegExp(`${sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*(.*?)(?=##|\\*\\*|$)`, 's')
-    ]
-    
-    for (const pattern of patterns) {
-      const match = text.match(pattern)
-      if (match && match[1]) {
-        return match[1].trim()
-      }
-    }
-    
-    return 'No content available for this section.'
-  }
 
   async testConnection() {
     try {

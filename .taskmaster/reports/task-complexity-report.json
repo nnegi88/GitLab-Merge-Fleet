@@ -1,0 +1,109 @@
+{
+	"meta": {
+		"generatedAt": "2025-07-10T17:22:04.588Z",
+		"tasksAnalyzed": 12,
+		"totalTasks": 12,
+		"analysisCount": 12,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": true
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Update Repository Selection UI for Single Selection",
+			"complexityScore": 4,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down the UI update into: (1) Refactor selection component to radio group or single-select, (2) Remove multi-select logic and update state management, (3) Update visual cues and feedback for single selection, (4) Update and run relevant UI tests.",
+			"reasoning": "This task involves moderate UI refactoring and state management changes, but is limited in scope to a single component and does not require complex logic or integration."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Integrate Branch Dropdown Component",
+			"complexityScore": 5,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Expand into: (1) Add branch dropdown UI after repository selection, (2) Integrate with branch data composable, (3) Implement loading spinner, (4) Pre-select default branch, (5) Ensure conditional rendering based on repository selection.",
+			"reasoning": "Requires UI work, integration with data sources, and conditional logic, but follows established patterns and uses existing libraries."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Implement Branch Fetching Logic",
+			"complexityScore": 6,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Decompose into: (1) Implement async branch fetch on repository selection, (2) Integrate caching for branch data, (3) Handle loading and error states, (4) Update state management for fetched branches, (5) Write and run tests for fetch and error handling.",
+			"reasoning": "Involves asynchronous API integration, caching, error handling, and state management, increasing complexity over pure UI tasks."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Add Branch Validation",
+			"complexityScore": 4,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Split into: (1) Implement branch existence validation logic, (2) Display error and disable review button on invalid selection, (3) Test validation and error display.",
+			"reasoning": "Validation logic is straightforward and leverages existing data, with limited UI and state changes."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Update API Calls to Use Selected Branch",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break into: (1) Update all relevant API calls to include branch ref, (2) Ensure AI analysis endpoint receives branch info, (3) Test file operations with selected branch, (4) Update documentation if needed.",
+			"reasoning": "Requires careful updates across multiple API integrations and ensuring consistency, with moderate risk of regressions."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Enhance Branch Dropdown with Search and Filter",
+			"complexityScore": 5,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Expand into: (1) Add search capability to dropdown, (2) Implement filter logic, (3) Add lazy loading for large lists, (4) Test performance and usability.",
+			"reasoning": "Enhancing UI with search/filter and lazy loading adds moderate complexity, especially for performance with large datasets."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Implement UI Feedback and Error States",
+			"complexityScore": 4,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Decompose into: (1) Add loading spinners for API calls, (2) Display error messages for failures, (3) Indicate current selections, (4) Disable review button until valid selections.",
+			"reasoning": "Primarily UI state and feedback work, with some conditional logic but no deep integration or algorithmic complexity."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Update Review Configuration Data Model",
+			"complexityScore": 3,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down into: (1) Update data model to include selected branch, (2) Refactor components and API calls to use new model, (3) Test data flow and integration.",
+			"reasoning": "Simple data model extension and refactoring, with limited impact and low algorithmic complexity."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "Test with Repositories Having Many Branches",
+			"complexityScore": 3,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Expand into: (1) Identify and set up test repositories with many branches, (2) Perform manual and automated performance tests, (3) Monitor and report on API usage and UI responsiveness.",
+			"reasoning": "Primarily testing and validation work, with minimal implementation complexity."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Add Helpful Tooltips and Guidance",
+			"complexityScore": 2,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Split into: (1) Add tooltips to selection components, (2) Write and test inline guidance for new users.",
+			"reasoning": "Low complexity UI enhancement with minimal logic or integration required."
+		},
+		{
+			"taskId": 11,
+			"taskTitle": "Optimize API Calls and Caching",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Decompose into: (1) Implement branch data caching, (2) Add smart refresh logic, (3) Monitor and handle API rate limits, (4) Test caching and refresh behavior.",
+			"reasoning": "Requires careful handling of caching, refresh logic, and rate limiting, which can introduce subtle bugs and performance issues."
+		},
+		{
+			"taskId": 12,
+			"taskTitle": "Prepare for Future Enhancements",
+			"complexityScore": 3,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down into: (1) Refactor code for modularity and extensibility, (2) Document extension points, (3) Review maintainability and update documentation.",
+			"reasoning": "Primarily code organization and documentation, with low technical complexity but important for maintainability."
+		}
+	]
+}

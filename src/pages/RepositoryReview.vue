@@ -4,22 +4,55 @@
       Repository Code Review
     </v-card-title>
     
+    <!-- Guidance Banner for new users -->
+    <v-alert
+      variant="tonal"
+      type="info"
+      icon="mdi-lightbulb-outline"
+      class="mb-6"
+    >
+      <template v-slot:title>
+        Getting Started with AI Code Review
+      </template>
+      <div class="text-body-2">
+        Follow these 3 simple steps to analyze your repository with AI:
+        <div class="mt-2">
+          <strong>1.</strong> Select a repository from your GitLab projects
+          <br>
+          <strong>2.</strong> Choose the branch you want to analyze
+          <br>
+          <strong>3.</strong> Configure review settings and click "Analyze Repository"
+        </div>
+      </div>
+    </v-alert>
+    
     <div class="d-flex flex-column ga-6">
       <!-- Step 1: Repository Selection -->
       <v-card>
         <v-card-title class="d-flex align-center ga-2">
           <v-icon icon="mdi-source-repository"></v-icon>
-          Step 1: Select Repositories
+          Step 1: Select Repository
         </v-card-title>
         <v-card-text>
-          <v-text-field
-            v-model="searchQuery"
-            placeholder="Search repositories..."
-            prepend-inner-icon="mdi-magnify"
-            variant="outlined"
-            hide-details
-            class="mb-4"
-          ></v-text-field>
+          <div class="text-body-2 text-medium-emphasis mb-3">
+            Select a single repository to analyze
+          </div>
+          <v-tooltip
+            text="Search by repository name or URL"
+            location="top"
+          >
+            <template v-slot:activator="{ props }">
+              <v-text-field
+                v-bind="props"
+                v-model="searchQuery"
+                placeholder="Search repositories..."
+                prepend-inner-icon="mdi-magnify"
+                variant="outlined"
+                hide-details
+                class="mb-4"
+              ></v-text-field>
+            </template>
+          </v-tooltip>
           
           <div style="max-height: 400px; overflow-y: auto;" class="border rounded">
             <div v-if="isLoadingProjects" class="text-center py-8">
@@ -36,43 +69,45 @@
             ></v-alert>
             
             <div v-else>
-              <v-list>
-                <v-list-item
-                  v-for="project in filteredProjects"
-                  :key="project.id"
-                  class="pa-3"
-                >
-                  <template v-slot:prepend>
-                    <v-checkbox
-                      :model-value="selectedProjects.includes(project.id)"
-                      @update:model-value="toggleProject(project.id)"
-                      hide-details
-                    ></v-checkbox>
-                  </template>
-                  
-                  <v-list-item-title class="font-weight-medium">
-                    {{ project.name_with_namespace }}
-                  </v-list-item-title>
-                  <v-list-item-subtitle>
-                    <div class="d-flex align-center ga-2">
-                      <span>{{ project.web_url }}</span>
-                      <v-chip
-                        v-if="project.default_branch"
-                        size="x-small"
-                        variant="outlined"
-                      >
-                        {{ project.default_branch }}
-                      </v-chip>
-                    </div>
-                  </v-list-item-subtitle>
-                </v-list-item>
-              </v-list>
+              <v-radio-group v-model="selectedProject" hide-details>
+                <v-list>
+                  <v-list-item
+                    v-for="project in filteredProjects"
+                    :key="project.id"
+                    class="pa-3"
+                    @click="selectedProject = project.id"
+                  >
+                    <template v-slot:prepend>
+                      <v-radio
+                        :value="project.id"
+                        hide-details
+                      ></v-radio>
+                    </template>
+                    
+                    <v-list-item-title class="font-weight-medium">
+                      {{ project.name_with_namespace }}
+                    </v-list-item-title>
+                    <v-list-item-subtitle>
+                      <div class="d-flex align-center ga-2">
+                        <span>{{ project.web_url }}</span>
+                        <v-chip
+                          v-if="project.default_branch"
+                          size="x-small"
+                          variant="outlined"
+                        >
+                          {{ project.default_branch }}
+                        </v-chip>
+                      </div>
+                    </v-list-item-subtitle>
+                  </v-list-item>
+                </v-list>
+              </v-radio-group>
             </div>
           </div>
           
           <div class="mt-4 d-flex align-center justify-space-between">
             <div class="text-body-2 text-medium-emphasis">
-              {{ selectedProjects.length }} repositories selected
+              {{ selectedProject ? `1 repository selected (ID: ${selectedProject})` : 'No repository selected' }}
             </div>
             <div v-if="isDiscoveringFiles" class="d-flex align-center ga-2">
               <v-progress-circular size="16" width="2" indeterminate color="primary"></v-progress-circular>
@@ -83,45 +118,160 @@
           </div>
         </v-card-text>
       </v-card>
+
+      <!-- Step 2: Branch Selection -->
+      <v-card v-if="selectedProject">
+        <v-card-title class="d-flex align-center ga-2">
+          <v-icon icon="mdi-source-branch"></v-icon>
+          Step 2: Select Branch
+        </v-card-title>
+        <v-card-text>
+          <div class="text-body-2 text-medium-emphasis mb-3">
+            Select the branch to analyze
+          </div>
+          
+          <!-- Branch selection guidance -->
+          <v-alert
+            v-if="!selectedBranch"
+            variant="outlined"
+            type="info"
+            icon="mdi-information-outline"
+            class="mb-3"
+            density="compact"
+          >
+            <div class="text-body-2">
+              <strong>Tip:</strong> Most repositories use <code>main</code> or <code>master</code> as the default branch. 
+              Feature branches like <code>develop</code> or <code>feature/*</code> can also be analyzed.
+            </div>
+          </v-alert>
+          
+          <v-select
+            v-model="selectedBranch"
+            :items="branchItems"
+            :loading="isLoadingBranches"
+            :disabled="isLoadingBranches"
+            :error-messages="branchError"
+            label="Target Branch"
+            variant="outlined"
+            item-title="name"
+            item-value="name"
+            item-disabled="disabled"
+            prepend-inner-icon="mdi-source-branch"
+            clearable
+            @update:search="branchSearchQuery = $event"
+          >
+            <template v-slot:prepend-item>
+              <v-tooltip
+                text="Use fuzzy search: 'mb' matches 'main-branch', 'dev' matches 'develop'"
+                location="top"
+              >
+                <template v-slot:activator="{ props }">
+                  <v-text-field
+                    v-bind="props"
+                    v-model="branchSearchQuery"
+                    placeholder="Search branches..."
+                    class="mx-3 mb-2"
+                    prepend-inner-icon="mdi-magnify"
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                    single-line
+                  ></v-text-field>
+                </template>
+              </v-tooltip>
+            </template>
+            
+          </v-select>
+          
+          <div v-if="selectedBranch" class="mt-2 text-body-2">
+            <div class="d-flex align-center ga-2">
+              <v-icon 
+                v-if="!isLoadingBranches && !isBranchValid" 
+                icon="mdi-alert-circle" 
+                color="error" 
+                size="small"
+              ></v-icon>
+              <v-icon 
+                v-else-if="!isLoadingBranches && isBranchValid" 
+                icon="mdi-check-circle" 
+                color="success" 
+                size="small"
+              ></v-icon>
+              <span :class="{ 'text-medium-emphasis': isBranchValid, 'text-error': !isBranchValid }">
+                Selected branch: <strong>{{ selectedBranch }}</strong>
+              </span>
+            </div>
+          </div>
+        </v-card-text>
+      </v-card>
         
-      <!-- Step 2: Review Configuration -->
+      <!-- Step 3: Review Configuration -->
       <v-card>
         <v-card-title class="d-flex align-center ga-2">
           <v-icon icon="mdi-cog"></v-icon>
-          Step 2: Review Configuration
+          Step 3: Review Configuration
         </v-card-title>
         <v-card-text>
+          <!-- Configuration guidance -->
+          <v-alert
+            variant="outlined"
+            type="success"
+            icon="mdi-check-circle-outline"
+            class="mb-4"
+            density="compact"
+          >
+            <div class="text-body-2">
+              <strong>Recommended for first-time users:</strong> Keep the default settings below. 
+              You can adjust "Analysis Depth" based on your repository size (Standard works well for most projects).
+            </div>
+          </v-alert>
           <v-row>
             <!-- Analysis Depth -->
             <v-col cols="12" md="6">
-              <v-select
-                v-model="reviewConfig.depth"
-                :items="[
-                  { title: 'Quick Scan - Overview & main files only', value: 'quick' },
-                  { title: 'Standard Review - All source files', value: 'standard' },
-                  { title: 'Deep Dive - Comprehensive analysis', value: 'deep' }
-                ]"
-                label="Analysis Depth"
-                variant="outlined"
-                hide-details
-              ></v-select>
+              <v-tooltip
+                text="Quick Scan: ~10 files | Standard: ~50 files | Deep Dive: All files"
+                location="top"
+              >
+                <template v-slot:activator="{ props }">
+                  <v-select
+                    v-bind="props"
+                    v-model="reviewConfig.depth"
+                    :items="[
+                      { title: 'Quick Scan - Overview & main files only', value: 'quick' },
+                      { title: 'Standard Review - All source files', value: 'standard' },
+                      { title: 'Deep Dive - Comprehensive analysis', value: 'deep' }
+                    ]"
+                    label="Analysis Depth"
+                    variant="outlined"
+                    hide-details
+                  ></v-select>
+                </template>
+              </v-tooltip>
             </v-col>
             
             <!-- Review Focus -->
             <v-col cols="12" md="6">
-              <v-select
-                v-model="reviewConfig.focus"
-                :items="[
-                  { title: 'Comprehensive - All areas', value: 'comprehensive' },
-                  { title: 'Security Focus - Vulnerabilities & best practices', value: 'security' },
-                  { title: 'Performance - Optimization opportunities', value: 'performance' },
-                  { title: 'Code Quality - Standards & maintainability', value: 'quality' },
-                  { title: 'Architecture - Structure & design patterns', value: 'architecture' }
-                ]"
-                label="Review Focus"
-                variant="outlined"
-                hide-details
-              ></v-select>
+              <v-tooltip
+                text="Choose the primary focus area for AI analysis"
+                location="top"
+              >
+                <template v-slot:activator="{ props }">
+                  <v-select
+                    v-bind="props"
+                    v-model="reviewConfig.focus"
+                    :items="[
+                      { title: 'Comprehensive - All areas', value: 'comprehensive' },
+                      { title: 'Security Focus - Vulnerabilities & best practices', value: 'security' },
+                      { title: 'Performance - Optimization opportunities', value: 'performance' },
+                      { title: 'Code Quality - Standards & maintainability', value: 'quality' },
+                      { title: 'Architecture - Structure & design patterns', value: 'architecture' }
+                    ]"
+                    label="Review Focus"
+                    variant="outlined"
+                    hide-details
+                  ></v-select>
+                </template>
+              </v-tooltip>
             </v-col>
             
             <!-- File Filters -->
@@ -133,50 +283,82 @@
               
               <v-row>
                 <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="reviewConfig.includeExtensions"
-                    label="Include Extensions"
-                    placeholder=".js,.vue,.ts,.py"
-                    variant="outlined"
-                    hint="Comma-separated file extensions to include"
-                    persistent-hint
-                  ></v-text-field>
+                  <v-tooltip
+                    text="Only analyze files with these extensions (e.g., .js,.vue,.ts)"
+                    location="top"
+                  >
+                    <template v-slot:activator="{ props }">
+                      <v-text-field
+                        v-bind="props"
+                        v-model="reviewConfig.includeExtensions"
+                        label="Include Extensions"
+                        placeholder=".js,.vue,.ts,.py"
+                        variant="outlined"
+                        hint="Comma-separated file extensions to include"
+                        persistent-hint
+                      ></v-text-field>
+                    </template>
+                  </v-tooltip>
                 </v-col>
                 
                 <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="reviewConfig.excludePaths"
-                    label="Exclude Paths"
-                    placeholder="node_modules,dist,build"
-                    variant="outlined"
-                    hint="Comma-separated paths to exclude"
-                    persistent-hint
-                  ></v-text-field>
+                  <v-tooltip
+                    text="Skip these directories during analysis (e.g., node_modules)"
+                    location="top"
+                  >
+                    <template v-slot:activator="{ props }">
+                      <v-text-field
+                        v-bind="props"
+                        v-model="reviewConfig.excludePaths"
+                        label="Exclude Paths"
+                        placeholder="node_modules,dist,build"
+                        variant="outlined"
+                        hint="Comma-separated paths to exclude"
+                        persistent-hint
+                      ></v-text-field>
+                    </template>
+                  </v-tooltip>
                 </v-col>
               </v-row>
               
               <v-row class="mt-2">
                 <v-col cols="12" md="6">
-                  <v-slider
-                    v-model="reviewConfig.maxFiles"
-                    :min="10"
-                    :max="200"
-                    :step="10"
-                    label="Maximum Files per Repository"
-                    thumb-label="always"
-                    hint="Limit analysis to most important files for large repositories"
-                    persistent-hint
-                  ></v-slider>
+                  <v-tooltip
+                    text="Adjust based on repository size and analysis time"
+                    location="top"
+                  >
+                    <template v-slot:activator="{ props }">
+                      <v-slider
+                        v-bind="props"
+                        v-model="reviewConfig.maxFiles"
+                        :min="10"
+                        :max="200"
+                        :step="10"
+                        label="Maximum Files per Repository"
+                        thumb-label="always"
+                        hint="Limit analysis to most important files for large repositories"
+                        persistent-hint
+                      ></v-slider>
+                    </template>
+                  </v-tooltip>
                 </v-col>
                 
                 <v-col cols="12" md="6">
-                  <v-switch
-                    v-model="reviewConfig.includeDocs"
-                    label="Include Documentation Files"
-                    hint="Analyze README, docs, and markdown files"
-                    persistent-hint
-                    hide-details
-                  ></v-switch>
+                  <v-tooltip
+                    text="Include .md, .txt, and documentation files in analysis"
+                    location="top"
+                  >
+                    <template v-slot:activator="{ props }">
+                      <v-switch
+                        v-bind="props"
+                        v-model="reviewConfig.includeDocs"
+                        label="Include Documentation Files"
+                        hint="Analyze README, docs, and markdown files"
+                        persistent-hint
+                        hide-details
+                      ></v-switch>
+                    </template>
+                  </v-tooltip>
                 </v-col>
               </v-row>
             </v-col>
@@ -192,15 +374,24 @@
         >
           Cancel
         </v-btn>
-        <v-btn
-          @click="startRepositoryReview"
-          :disabled="!canStartReview || isAnalyzing"
-          :loading="isAnalyzing"
-          color="primary"
-          prepend-icon="mdi-robot"
+        <v-tooltip
+          :text="getAnalyzeButtonTooltip"
+          :disabled="canStartReview && !isAnalyzing"
+          location="top"
         >
-          Analyze {{ selectedProjects.length }} Repository{{ selectedProjects.length !== 1 ? 'ies' : '' }}
-        </v-btn>
+          <template v-slot:activator="{ props }">
+            <v-btn
+              v-bind="props"
+              @click="startRepositoryReview"
+              :disabled="!canStartReview || isAnalyzing"
+              :loading="isAnalyzing"
+              color="primary"
+              prepend-icon="mdi-robot"
+            >
+              Analyze Repository
+            </v-btn>
+          </template>
+        </v-tooltip>
       </div>
       
       <!-- Progress Modal -->
@@ -219,7 +410,7 @@
                 color="primary"
               ></v-progress-linear>
               <div class="text-body-2 text-medium-emphasis mt-2 text-center">
-                {{ Math.round(overallProgress) }}% Complete - {{ completedRepositories }}/{{ selectedProjects.length }} repositories
+                {{ Math.round(overallProgress) }}% Complete
               </div>
             </div>
             
@@ -317,13 +508,24 @@ import gitlabAPI from '../api/gitlab'
 import geminiAPI from '../api/gemini'
 import { useAuthStore } from '../stores/authStore'
 import { RepositoryAnalyzer } from '../utils/repositoryAnalyzer'
+import { useProjectBranches } from '../hooks/useProjectBranches'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
+// Branch composable
+const { 
+  fetchBranchesForProject, 
+  getProjectBranches, 
+  isProjectBranchesLoading,
+  branchLoadingErrors 
+} = useProjectBranches()
+
 // State
 const searchQuery = ref('')
-const selectedProjects = ref([])
+const selectedProject = ref(null)
+const selectedBranch = ref(null)
+const branchSearchQuery = ref('')
 const reviewConfig = ref({
   depth: 'standard',
   focus: 'comprehensive',
@@ -359,9 +561,159 @@ const filteredProjects = computed(() => {
   )
 })
 
+// Branch dropdown computed properties
+const isLoadingBranches = computed(() => {
+  return selectedProject.value ? isProjectBranchesLoading.value(selectedProject.value) : false
+})
+
+// Common branch patterns to prioritize
+const COMMON_BRANCH_PATTERNS = [
+  'main',
+  'master', 
+  'develop',
+  'development',
+  'staging',
+  'production',
+  'release',
+  'hotfix'
+]
+
+// Maximum branches to show initially (before search)
+const MAX_INITIAL_BRANCHES = 20
+
+const branchError = computed(() => {
+  const errors = []
+  
+  // API loading errors
+  if (selectedProject.value) {
+    const loadingError = branchLoadingErrors[selectedProject.value]
+    if (loadingError) errors.push(loadingError)
+  }
+  
+  // Validation errors
+  if (branchValidationError.value) {
+    errors.push(branchValidationError.value)
+  }
+  
+  return errors.length > 0 ? errors : null
+})
+
+const branchItems = computed(() => {
+  if (!selectedProject.value) return []
+  
+  const branches = getProjectBranches.value(selectedProject.value)
+  const items = branches.map(branch => ({ name: branch }))
+  
+  // If searching, apply enhanced filter logic
+  if (branchSearchQuery.value && branchSearchQuery.value.trim() !== '') {
+    const query = branchSearchQuery.value.toLowerCase().trim()
+    
+    // Escape special regex characters in the query
+    const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    
+    // Create regex pattern for fuzzy matching
+    // Allow characters to be separated (e.g., "mb" matches "main-branch")
+    const fuzzyPattern = escapeRegex(query).split('').join('.*')
+    const fuzzyRegex = new RegExp(fuzzyPattern, 'i')
+    
+    // Score and filter branches
+    const scoredItems = items
+      .map(item => {
+        const name = item.name.toLowerCase()
+        let score = 0
+        
+        // Exact match gets highest score
+        if (name === query) {
+          score = 1000
+        }
+        // Starts with query gets high score
+        else if (name.startsWith(query)) {
+          score = 800
+        }
+        // Contains exact query gets medium score
+        else if (name.includes(query)) {
+          score = 600
+        }
+        // Fuzzy match gets lower score based on match position
+        else if (fuzzyRegex.test(name)) {
+          const matchIndex = name.search(fuzzyRegex)
+          score = 400 - matchIndex // Earlier matches score higher
+        }
+        
+        return { ...item, score }
+      })
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+    
+    // Return without scores for v-select
+    return scoredItems.map(({ score, ...item }) => item)
+  }
+  
+  // No search query - apply smart sorting and limiting
+  // First, separate and prioritize common branches
+  const commonBranches = []
+  const otherBranches = []
+  
+  items.forEach(item => {
+    const branchName = item.name.toLowerCase()
+    const isCommon = COMMON_BRANCH_PATTERNS.some(pattern => 
+      branchName === pattern || 
+      branchName.startsWith(pattern + '/') ||
+      branchName.startsWith(pattern + '-')
+    )
+    
+    if (isCommon) {
+      commonBranches.push(item)
+    } else {
+      otherBranches.push(item)
+    }
+  })
+  
+  // Sort each group alphabetically
+  commonBranches.sort((a, b) => a.name.localeCompare(b.name))
+  otherBranches.sort((a, b) => a.name.localeCompare(b.name))
+  
+  // Combine groups, with common branches first
+  const sortedItems = [...commonBranches, ...otherBranches]
+  
+  // For very large lists, limit initial display
+  if (sortedItems.length > MAX_INITIAL_BRANCHES) {
+    const limitedItems = sortedItems.slice(0, MAX_INITIAL_BRANCHES)
+    // Add a hint item to show more branches exist
+    limitedItems.push({
+      name: `... and ${sortedItems.length - MAX_INITIAL_BRANCHES} more branches (type to search)`,
+      disabled: true
+    })
+    return limitedItems
+  }
+  
+  return sortedItems
+})
+
+// Branch validation
+const isBranchValid = computed(() => {
+  if (!selectedBranch.value || !selectedProject.value) return true // No validation needed if nothing selected
+  
+  const branches = getProjectBranches.value(selectedProject.value)
+  return branches.includes(selectedBranch.value)
+})
+
+const branchValidationError = computed(() => {
+  if (!selectedBranch.value || !selectedProject.value) return null
+  if (isLoadingBranches.value) return null // Don't show error while loading
+  
+  if (!isBranchValid.value) {
+    return `Branch "${selectedBranch.value}" not found in repository`
+  }
+  return null
+})
+
 // Validation for starting review
 const canStartReview = computed(() => {
-  return selectedProjects.value.length > 0 && !!authStore.token
+  return selectedProject.value !== null && 
+         selectedBranch.value !== null && 
+         isBranchValid.value &&
+         !!authStore.token
 })
 
 // Progress calculations
@@ -370,23 +722,33 @@ const completedRepositories = computed(() => {
 })
 
 const overallProgress = computed(() => {
-  if (selectedProjects.value.length === 0) return 0
-  return (completedRepositories.value / selectedProjects.value.length) * 100
+  if (!selectedProject.value) return 0
+  return completedRepositories.value > 0 ? 100 : 0
 })
 
 const hasResults = computed(() => {
   return analysisResults.value.some(r => r.status === 'completed')
 })
 
-// Toggle project selection
-const toggleProject = (projectId) => {
-  const index = selectedProjects.value.indexOf(projectId)
-  if (index > -1) {
-    selectedProjects.value = selectedProjects.value.filter(id => id !== projectId)
-  } else {
-    selectedProjects.value = [...selectedProjects.value, projectId]
+const getAnalyzeButtonTooltip = computed(() => {
+  if (!selectedProject.value) {
+    return 'Please select a repository first'
   }
-}
+  if (!selectedBranch.value) {
+    return 'Please select a branch'
+  }
+  if (!isBranchValid.value) {
+    return `Branch "${selectedBranch.value}" is not valid. Please select an existing branch.`
+  }
+  if (!authStore.token) {
+    return 'Authentication required'
+  }
+  if (isAnalyzing.value) {
+    return 'Analysis in progress...'
+  }
+  return ''
+})
+
 
 function getProjectName(projectId) {
   const project = projects.value?.find(p => p.id === projectId)
@@ -403,7 +765,7 @@ function getResultCardClass(status) {
 }
 
 async function startRepositoryReview() {
-  if (selectedProjects.value.length === 0) return
+  if (!selectedProject.value) return
   
   // Check if Gemini API key is configured
   if (!geminiAPI.getApiKey()) {
@@ -415,17 +777,18 @@ async function startRepositoryReview() {
   showProgress.value = true
   
   // Initialize analysis results
-  analysisResults.value = selectedProjects.value.map(projectId => ({
-    projectId,
-    projectName: getProjectName(projectId),
+  analysisResults.value = [{
+    projectId: selectedProject.value,
+    projectName: getProjectName(selectedProject.value),
     status: 'pending',
     filesAnalyzed: 0,
     currentPhase: 'Initializing',
     reviewData: null
-  }))
+  }]
   
-  // Process repositories sequentially to avoid overwhelming APIs
-  for (const projectId of selectedProjects.value) {
+  // Process the single selected repository
+  const projectId = selectedProject.value
+  {
     const resultIndex = analysisResults.value.findIndex(r => r.projectId === projectId)
     
     try {
@@ -450,11 +813,11 @@ async function startRepositoryReview() {
       
       // Get project details and analyze repository structure
       const project = projects.value.find(p => p.id === projectId)
-      const defaultBranch = project?.default_branch || 'main'
+      const branch = selectedBranch.value || project?.default_branch || 'main'
       
       const repositoryData = await analyzer.analyzeRepository(
         projectId, 
-        defaultBranch, 
+        branch, 
         (progress) => {
           analysisResults.value[resultIndex].currentPhase = progress.message
           if (progress.filesCount) {
@@ -474,7 +837,8 @@ async function startRepositoryReview() {
         repositoryData.files,
         {
           focus: reviewConfig.value.focus,
-          depth: reviewConfig.value.depth
+          depth: reviewConfig.value.depth,
+          branch: branch
         }
       )
       
@@ -482,7 +846,22 @@ async function startRepositoryReview() {
       analysisResults.value[resultIndex].status = 'completed'
       analysisResults.value[resultIndex].reviewData = {
         repositoryData,
-        reviewResult
+        reviewResult,
+        reviewConfiguration: {
+          repository: {
+            id: projectId,
+            name: project.name_with_namespace,
+            selectedBranch: branch
+          },
+          reviewConfig: {
+            focus: reviewConfig.value.focus,
+            depth: reviewConfig.value.depth,
+            includeExtensions: reviewConfig.value.includeExtensions,
+            excludePaths: reviewConfig.value.excludePaths,
+            maxFiles: reviewConfig.value.maxFiles,
+            includeDocs: reviewConfig.value.includeDocs
+          }
+        }
       }
       
     } catch (error) {
@@ -528,10 +907,28 @@ function viewResults() {
   }
 }
 
-// Watch for project selection to trigger file discovery
-// Alias unused parameter to avoid linting errors
-watch(selectedProjects, async (newProjects, _oldProjects) => {
-  // TODO: Implement file discovery when projects are selected
-  console.log('Selected projects changed:', newProjects)
+// Watch for project selection to fetch branches
+watch(selectedProject, async (newProject, _oldProject) => {
+  if (newProject) {
+    // Reset branch selection when project changes
+    selectedBranch.value = null
+    branchSearchQuery.value = ''
+    
+    // Fetch branches for the selected project
+    await fetchBranchesForProject(newProject)
+    
+    // Find the project's default branch and pre-select it
+    const project = projects.value?.find(p => p.id === newProject)
+    if (project?.default_branch) {
+      const branches = getProjectBranches.value(newProject)
+      if (branches.includes(project.default_branch)) {
+        selectedBranch.value = project.default_branch
+      }
+    }
+  } else {
+    // Clear branch selection when no project is selected
+    selectedBranch.value = null
+    branchSearchQuery.value = ''
+  }
 }, { immediate: false })
 </script>

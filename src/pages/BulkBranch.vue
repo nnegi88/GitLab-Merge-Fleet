@@ -12,14 +12,22 @@
           Step 1: Select Repositories
         </v-card-title>
         <v-card-text>
-          <v-text-field
-            v-model="searchQuery"
-            placeholder="Search repositories..."
-            prepend-inner-icon="mdi-magnify"
-            variant="outlined"
-            hide-details
-            class="mb-4"
-          ></v-text-field>
+          <v-tooltip
+            text="Search by repository name or namespace"
+            location="top"
+          >
+            <template v-slot:activator="{ props }">
+              <v-text-field
+                v-bind="props"
+                v-model="searchQuery"
+                placeholder="Search repositories..."
+                prepend-inner-icon="mdi-magnify"
+                variant="outlined"
+                hide-details
+                class="mb-4"
+              ></v-text-field>
+            </template>
+          </v-tooltip>
           
           <div style="max-height: 400px; overflow-y: auto;" class="border rounded">
             <div v-if="isLoadingProjects" class="text-center py-8">

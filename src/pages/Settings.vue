@@ -60,17 +60,42 @@
       <v-card>
         <v-card-title class="text-h6">AI Integration</v-card-title>
         <v-card-text>
+          <!-- API Key guidance -->
+          <v-alert
+            v-if="!geminiApiKey"
+            variant="outlined"
+            type="warning"
+            icon="mdi-key-alert"
+            class="mb-4"
+          >
+            <template v-slot:title>
+              API Key Required for AI Features
+            </template>
+            <div class="text-body-2">
+              To use AI-powered repository analysis, you'll need a free Google Gemini API key. 
+              Visit <a href="https://ai.google.dev/" target="_blank" class="text-primary">ai.google.dev</a> 
+              to get started.
+            </div>
+          </v-alert>
           <div class="d-flex flex-column ga-4">
-            <v-text-field
-              v-model="geminiApiKey"
-              type="password"
-              label="Google Gemini API Key"
-              placeholder="Enter your Gemini API key"
-              prepend-inner-icon="mdi-key"
-              variant="outlined"
-              hint="Required for AI-powered code review features. Get your API key from Google AI Studio."
-              persistent-hint
-            ></v-text-field>
+            <v-tooltip
+              text="Get a free API key from https://ai.google.dev/ - stored securely in your browser"
+              location="top"
+            >
+              <template v-slot:activator="{ props }">
+                <v-text-field
+                  v-bind="props"
+                  v-model="geminiApiKey"
+                  type="password"
+                  label="Google Gemini API Key"
+                  placeholder="Enter your Gemini API key"
+                  prepend-inner-icon="mdi-key"
+                  variant="outlined"
+                  hint="Required for AI-powered code review features. Get your API key from Google AI Studio."
+                  persistent-hint
+                ></v-text-field>
+              </template>
+            </v-tooltip>
 
             <v-alert
               type="info"
