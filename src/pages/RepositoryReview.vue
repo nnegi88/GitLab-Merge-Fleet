@@ -69,44 +69,45 @@
             ></v-alert>
             
             <div v-else>
-              <v-list>
-                <v-list-item
-                  v-for="project in filteredProjects"
-                  :key="project.id"
-                  class="pa-3"
-                >
-                  <template v-slot:prepend>
-                    <v-radio
-                      :model-value="selectedProject === project.id"
-                      :value="project.id"
-                      @update:model-value="selectedProject = project.id"
-                      hide-details
-                    ></v-radio>
-                  </template>
-                  
-                  <v-list-item-title class="font-weight-medium">
-                    {{ project.name_with_namespace }}
-                  </v-list-item-title>
-                  <v-list-item-subtitle>
-                    <div class="d-flex align-center ga-2">
-                      <span>{{ project.web_url }}</span>
-                      <v-chip
-                        v-if="project.default_branch"
-                        size="x-small"
-                        variant="outlined"
-                      >
-                        {{ project.default_branch }}
-                      </v-chip>
-                    </div>
-                  </v-list-item-subtitle>
-                </v-list-item>
-              </v-list>
+              <v-radio-group v-model="selectedProject" hide-details>
+                <v-list>
+                  <v-list-item
+                    v-for="project in filteredProjects"
+                    :key="project.id"
+                    class="pa-3"
+                    @click="selectedProject = project.id"
+                  >
+                    <template v-slot:prepend>
+                      <v-radio
+                        :value="project.id"
+                        hide-details
+                      ></v-radio>
+                    </template>
+                    
+                    <v-list-item-title class="font-weight-medium">
+                      {{ project.name_with_namespace }}
+                    </v-list-item-title>
+                    <v-list-item-subtitle>
+                      <div class="d-flex align-center ga-2">
+                        <span>{{ project.web_url }}</span>
+                        <v-chip
+                          v-if="project.default_branch"
+                          size="x-small"
+                          variant="outlined"
+                        >
+                          {{ project.default_branch }}
+                        </v-chip>
+                      </div>
+                    </v-list-item-subtitle>
+                  </v-list-item>
+                </v-list>
+              </v-radio-group>
             </div>
           </div>
           
           <div class="mt-4 d-flex align-center justify-space-between">
             <div class="text-body-2 text-medium-emphasis">
-              {{ selectedProject ? '1 repository selected' : 'No repository selected' }}
+              {{ selectedProject ? `1 repository selected (ID: ${selectedProject})` : 'No repository selected' }}
             </div>
             <div v-if="isDiscoveringFiles" class="d-flex align-center ga-2">
               <v-progress-circular size="16" width="2" indeterminate color="primary"></v-progress-circular>
@@ -180,13 +181,6 @@
               </v-tooltip>
             </template>
             
-            <template v-slot:loader>
-              <v-progress-linear
-                indeterminate
-                color="primary"
-                class="mb-0"
-              ></v-progress-linear>
-            </template>
           </v-select>
           
           <div v-if="selectedBranch" class="mt-2 text-body-2">
