@@ -5,6 +5,12 @@ class GitLabAPI {
   constructor() {
     this.client = null
     this.gitlabVersion = null
+    this.rateLimitInfo = {
+      limit: null,
+      remaining: null,
+      reset: null,
+      observed: null
+    }
   }
 
   getClient() {
@@ -20,10 +26,31 @@ class GitLabAPI {
         }
       })
 
-      // Add request interceptor for error handling
+      // Add response interceptor for error handling and rate limit tracking
       this.client.interceptors.response.use(
-        response => response,
+        response => {
+          // Track rate limit headers
+          this.updateRateLimitInfo(response.headers)
+          return response
+        },
         error => {
+          // Track rate limit headers even on errors
+          if (error.response) {
+            this.updateRateLimitInfo(error.response.headers)
+            
+            // Handle rate limit errors specifically
+            if (error.response.status === 429) {
+              const resetTime = error.response.headers['ratelimit-reset'] || error.response.headers['x-ratelimit-reset']
+              const retryAfter = error.response.headers['retry-after']
+              
+              error.rateLimitInfo = {
+                resetTime: resetTime ? new Date(parseInt(resetTime) * 1000) : null,
+                retryAfter: retryAfter ? parseInt(retryAfter) : null,
+                message: 'GitLab API rate limit exceeded'
+              }
+            }
+          }
+          
           if (error.response?.status === 401 && !error.config?.headers?.['X-Propagate-401']) {
             authStore.clearToken()
             window.location.reload()
@@ -34,6 +61,40 @@ class GitLabAPI {
     }
 
     return this.client
+  }
+
+  updateRateLimitInfo(headers) {
+    // GitLab uses different header names in different versions
+    const limit = headers['ratelimit-limit'] || headers['x-ratelimit-limit']
+    const remaining = headers['ratelimit-remaining'] || headers['x-ratelimit-remaining']
+    const reset = headers['ratelimit-reset'] || headers['x-ratelimit-reset']
+    
+    if (limit) this.rateLimitInfo.limit = parseInt(limit)
+    if (remaining) this.rateLimitInfo.remaining = parseInt(remaining)
+    if (reset) this.rateLimitInfo.reset = new Date(parseInt(reset) * 1000)
+    this.rateLimitInfo.observed = new Date()
+  }
+
+  getRateLimitInfo() {
+    return { ...this.rateLimitInfo }
+  }
+
+  isApproachingRateLimit(threshold = 0.1) {
+    if (!this.rateLimitInfo.limit || !this.rateLimitInfo.remaining) {
+      return false
+    }
+    const percentageRemaining = this.rateLimitInfo.remaining / this.rateLimitInfo.limit
+    return percentageRemaining <= threshold
+  }
+
+  async waitForRateLimit() {
+    if (this.rateLimitInfo.reset && this.rateLimitInfo.remaining === 0) {
+      const waitTime = this.rateLimitInfo.reset.getTime() - Date.now()
+      if (waitTime > 0) {
+        console.warn(`Rate limit exceeded. Waiting ${Math.ceil(waitTime / 1000)} seconds...`)
+        await new Promise(resolve => setTimeout(resolve, waitTime))
+      }
+    }
   }
 
   // User endpoints

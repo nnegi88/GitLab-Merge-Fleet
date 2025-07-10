@@ -7,10 +7,14 @@ const DEFAULT_BRANCH_NAMES = ['main', 'master', 'develop', 'development']
 export function useProjectBranches(options = {}) {
   // Allow customization of default branches
   const defaultBranches = options.defaultBranches || DEFAULT_BRANCH_NAMES
+  // Cache TTL in milliseconds (default: 5 minutes)
+  const CACHE_TTL = options.cacheTTL || 5 * 60 * 1000
+  
   // Reactive state for branches - using reactive for cleaner object updates
   const projectBranches = reactive({}) // { projectId: ['branch1', 'branch2'] }
   const projectsLoading = reactive({}) // { projectId: true/false }
   const branchLoadingErrors = reactive({}) // { projectId: 'error message' }
+  const branchCacheTimestamps = reactive({}) // { projectId: timestamp }
   const isLoadingCommonBranches = ref(false)
   const isFetchingBranches = ref(false) // Global indicator for batch fetching
   const commonBranchesError = ref(null) // Error message for common branches calculation
@@ -18,10 +22,23 @@ export function useProjectBranches(options = {}) {
   const branchesLoadedCount = ref(0) // Count of projects that have loaded branches
   const totalProjectsToLoad = ref(0) // Total projects to load for progress
 
+  // Function to check if cache is stale
+  function isCacheStale(projectId) {
+    const timestamp = branchCacheTimestamps[projectId]
+    if (!timestamp) return true
+    return Date.now() - timestamp > CACHE_TTL
+  }
+
   // Function to fetch branches for a project
-  async function fetchBranchesForProject(projectId) {
-    if (projectBranches[projectId] || projectsLoading[projectId]) {
-      return // Already have data or already loading
+  async function fetchBranchesForProject(projectId, forceRefresh = false) {
+    // Check if we have cached data and it's still fresh
+    if (!forceRefresh && projectBranches[projectId] && !isCacheStale(projectId)) {
+      return // Cache is still valid
+    }
+    
+    // Skip if already loading
+    if (projectsLoading[projectId]) {
+      return // Already loading
     }
     
     // Direct updates with reactive objects
@@ -32,11 +49,23 @@ export function useProjectBranches(options = {}) {
       const branches = await gitlabAPI.getBranches(projectId)
       const branchNames = branches.map(branch => branch.name)
       projectBranches[projectId] = branchNames
+      branchCacheTimestamps[projectId] = Date.now() // Record cache timestamp
     } catch (error) {
       console.error(`Failed to fetch branches for project ${projectId}:`, error)
-      // Standardized error message format
-      const errorMessage = error.response?.data?.message || error.message || 'Unable to load branches'
-      branchLoadingErrors[projectId] = errorMessage
+      
+      // Handle rate limit errors specifically
+      if (error.response?.status === 429) {
+        const retryInfo = error.rateLimitInfo || {}
+        const errorMessage = retryInfo.resetTime 
+          ? `Rate limit exceeded. Try again after ${retryInfo.resetTime.toLocaleTimeString()}`
+          : 'Rate limit exceeded. Please try again later.'
+        branchLoadingErrors[projectId] = errorMessage
+      } else {
+        // Standardized error message format
+        const errorMessage = error.response?.data?.message || error.message || 'Unable to load branches'
+        branchLoadingErrors[projectId] = errorMessage
+      }
+      
       projectBranches[projectId] = []
     } finally {
       projectsLoading[projectId] = false
@@ -44,7 +73,7 @@ export function useProjectBranches(options = {}) {
   }
 
   // Throttled branch fetching for performance
-  async function fetchBranchesThrottled(projectIds) {
+  async function fetchBranchesThrottled(projectIds, forceRefresh = false) {
     if (projectIds.length === 0) return
     
     isFetchingBranches.value = true
@@ -60,7 +89,7 @@ export function useProjectBranches(options = {}) {
         
         // Fetch batch in parallel
         await Promise.all(batch.map(async (projectId) => {
-          await fetchBranchesForProject(projectId)
+          await fetchBranchesForProject(projectId, forceRefresh)
           branchesLoadedCount.value++
         }))
         
@@ -198,6 +227,26 @@ export function useProjectBranches(options = {}) {
     )
   }
 
+  // Function to manually refresh branch data for a project
+  function refreshBranchesForProject(projectId) {
+    return fetchBranchesForProject(projectId, true)
+  }
+
+  // Function to clear cache for a specific project
+  function clearBranchCache(projectId) {
+    delete projectBranches[projectId]
+    delete branchCacheTimestamps[projectId]
+    delete branchLoadingErrors[projectId]
+  }
+
+  // Function to get cache age in milliseconds
+  const getCacheAge = computed(() => {
+    return (projectId) => {
+      const timestamp = branchCacheTimestamps[projectId]
+      return timestamp ? Date.now() - timestamp : null
+    }
+  })
+
   return {
     // State
     projectBranches,
@@ -214,11 +263,15 @@ export function useProjectBranches(options = {}) {
     fetchBranchesForProject,
     fetchBranchesThrottled,
     fetchCommonBranches,
+    refreshBranchesForProject,
+    clearBranchCache,
     
     // Computed
     getProjectBranches,
     isProjectBranchesLoading,
     isBranchValidForProject,
-    getFailedProjectsInCustomMode
+    getFailedProjectsInCustomMode,
+    getCacheAge,
+    isCacheStale
   }
 }

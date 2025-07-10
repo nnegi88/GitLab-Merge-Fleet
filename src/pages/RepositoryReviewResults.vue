@@ -64,8 +64,12 @@
               <div class="text-h6 font-weight-medium mb-2">
                 {{ reviewData.repositoryData.project.name_with_namespace }}
               </div>
-              <div class="text-body-2 text-medium-emphasis mb-4">
+              <div class="text-body-2 text-medium-emphasis mb-1">
                 {{ reviewData.repositoryData.project.description || 'No description available' }}
+              </div>
+              <div class="text-body-2 text-medium-emphasis mb-4">
+                <v-icon icon="mdi-source-branch" size="small" class="mr-1"></v-icon>
+                Branch: <strong>{{ reviewData.repositoryData.branch || reviewData.reviewConfiguration?.repository?.selectedBranch || 'main' }}</strong>
               </div>
               <div class="d-flex flex-wrap ga-2">
                 <v-chip
@@ -322,10 +326,25 @@ function formatFileSize(bytes) {
 function exportResults() {
   if (!reviewData.value) return
   
-  const content = reviewData.value.reviewResult.fullReview
+  // Get branch name from multiple possible sources
+  const branch = reviewData.value.repositoryData.branch || 
+                 reviewData.value.reviewConfiguration?.repository?.selectedBranch || 
+                 'main'
+  
+  // Create export content with metadata header
+  const metadata = `# Repository Review Report\n\n` +
+    `**Repository:** ${reviewData.value.repositoryData.project.name_with_namespace}\n` +
+    `**Branch:** ${branch}\n` +
+    `**Date:** ${new Date().toISOString()}\n` +
+    `**Files Analyzed:** ${reviewData.value.repositoryData.selectedFiles} of ${reviewData.value.repositoryData.totalFiles}\n` +
+    `**Analysis Focus:** ${reviewData.value.reviewResult.metadata.focus}\n` +
+    `**Analysis Depth:** ${reviewData.value.reviewResult.metadata.depth}\n\n` +
+    `---\n\n`
+  
+  const content = metadata + reviewData.value.reviewResult.fullReview
   const projectName = reviewData.value.repositoryData.project.name_with_namespace.replace(/[/\\:*?"<>|]/g, '_')
   const timestamp = new Date().toISOString().split('T')[0]
-  const filename = `${projectName}_review_${timestamp}.md`
+  const filename = `${projectName}_${branch.replace(/[/\\:*?"<>|]/g, '_')}_review_${timestamp}.md`
   
   const blob = new Blob([content], { type: 'text/markdown' })
   const url = URL.createObjectURL(blob)

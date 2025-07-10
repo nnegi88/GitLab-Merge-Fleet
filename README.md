@@ -21,6 +21,7 @@ A modern, frontend-only GitLab multi-repository merge request management tool wi
 - **Icons**: Material Design Icons (@mdi/font)
 - **Markdown**: Professional rendering with `marked` library
 - **AI Integration**: Google Gemini 2.5 Flash Preview for code reviews
+- **Architecture**: Modular service-based architecture with dependency injection
 
 ## Quick Start
 
@@ -70,6 +71,24 @@ npm run preview
 2. Add it in the Settings page
 3. AI review functionality will be enabled automatically
 
+## Architecture
+
+The codebase follows a modular, service-based architecture designed for extensibility and maintainability:
+
+### Service Layer Architecture
+- **Configuration Layer**: Centralized configuration in `src/config/`
+- **Service Layer**: Modular, injectable services in `src/services/`
+- **Utility Layer**: Core utilities and analyzers in `src/utils/`
+- **API Layer**: External integrations in `src/api/`
+- **Component Layer**: Vue.js components in `src/components/` and `src/pages/`
+
+### Dependency Injection
+All services support constructor-based dependency injection for testing and customization:
+```javascript
+const customFileAnalysis = new CustomFileAnalysisService(options)
+const analyzer = new RepositoryAnalyzer(options, customFileAnalysis)
+```
+
 ## Project Structure
 
 ```
@@ -84,10 +103,17 @@ src/
 │   └── Setup.vue       # Initial setup wizard
 ├── stores/             # Pinia state stores
 │   └── authStore.js    # Authentication state
+├── config/             # Centralized configuration
+│   └── analysis.js     # File analysis & filtering config
+├── services/           # Modular business logic services
+│   ├── fileAnalysis.js # File filtering & prioritization
+│   ├── promptBuilder.js # AI prompt generation
+│   └── reviewParser.js # AI response parsing
 ├── api/                # API integration
 │   ├── gitlab.js       # GitLab API client
 │   └── gemini.js       # AI review service
 ├── utils/              # Utility functions
+│   ├── repositoryAnalyzer.js # Repository analysis
 │   └── dateUtils.js    # Date formatting
 └── plugins/            # Vue plugins
     └── vuetify.js      # Vuetify configuration
@@ -118,6 +144,8 @@ npm run lint
 - Use Material Design Icons (mdi-*) for all iconography
 - Implement proper loading states and error handling
 - Test with GitLab Enterprise Edition 14.9.0-ee compatibility
+- Follow the modular service architecture for new features
+- Use dependency injection for testable, extensible code
 
 ## Features in Detail
 
@@ -180,13 +208,44 @@ npm run deploy
 ### Configuration Files
 - `.env.example` - Example environment variables
 
+## Extending the Application
+
+The codebase is designed for extensibility through a modular service architecture. See [`EXTENSION_POINTS.md`](./EXTENSION_POINTS.md) for detailed documentation on:
+
+- Adding new file analysis strategies
+- Implementing custom AI prompt builders
+- Creating custom review parsers
+- Extending the repository analyzer
+- Adding new AI providers
+- Implementing custom workflows
+
+### Quick Extension Example
+```javascript
+// Create custom file analysis for React projects
+class ReactFileAnalysisService extends FileAnalysisService {
+  prioritizeFiles(files, languages) {
+    const prioritized = super.prioritizeFiles(files, languages)
+    return prioritized.map(file => {
+      if (file.path.includes('components/') || file.path.includes('hooks/')) {
+        file.priority += 10 // Boost React-specific files
+      }
+      return file
+    })
+  }
+}
+
+// Use custom service
+const customAnalyzer = new RepositoryAnalyzer({}, new ReactFileAnalysisService())
+```
+
 ## Contributing
 
 1. Create a feature branch from `main`
 2. Make your changes following the development guidelines
-3. Test thoroughly with the development server
-4. Run `npm run lint` to ensure code quality
-5. Create a merge request with a clear description
+3. Follow the modular architecture patterns for new features
+4. Test thoroughly with the development server
+5. Run `npm run lint` to ensure code quality
+6. Create a merge request with a clear description
 
 ## Support
 

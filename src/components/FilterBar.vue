@@ -4,15 +4,23 @@
       <!-- Main filters row -->
       <v-row align="center" class="mb-4">
         <v-col cols="12" md="6">
-          <v-text-field
-            :model-value="filters.search"
-            @update:model-value="updateFilter('search', $event)"
-            placeholder="Search merge requests..."
-            prepend-inner-icon="mdi-magnify"
-            variant="outlined"
-            hide-details
-            density="compact"
-          ></v-text-field>
+          <v-tooltip
+            text="Search by title, description, or merge request ID"
+            location="top"
+          >
+            <template v-slot:activator="{ props }">
+              <v-text-field
+                v-bind="props"
+                :model-value="filters.search"
+                @update:model-value="updateFilter('search', $event)"
+                placeholder="Search merge requests..."
+                prepend-inner-icon="mdi-magnify"
+                variant="outlined"
+                hide-details
+                density="compact"
+              ></v-text-field>
+            </template>
+          </v-tooltip>
         </v-col>
         
         <v-col cols="12" md="6">
@@ -22,34 +30,50 @@
               <span class="text-body-2 font-weight-medium">Filters:</span>
             </div>
             
-            <v-select
-              :model-value="filters.state"
-              @update:model-value="updateFilter('state', $event)"
-              :items="[
-                { title: 'Open', value: 'opened' },
-                { title: 'Merged', value: 'merged' },
-                { title: 'Closed', value: 'closed' },
-                { title: 'All', value: 'all' }
-              ]"
-              variant="outlined"
-              hide-details
-              density="compact"
-              style="min-width: 100px;"
-            ></v-select>
+            <v-tooltip
+              text="Filter by merge request status"
+              location="top"
+            >
+              <template v-slot:activator="{ props }">
+                <v-select
+                  v-bind="props"
+                  :model-value="filters.state"
+                  @update:model-value="updateFilter('state', $event)"
+                  :items="[
+                    { title: 'Open', value: 'opened' },
+                    { title: 'Merged', value: 'merged' },
+                    { title: 'Closed', value: 'closed' },
+                    { title: 'All', value: 'all' }
+                  ]"
+                  variant="outlined"
+                  hide-details
+                  density="compact"
+                  style="min-width: 100px;"
+                ></v-select>
+              </template>
+            </v-tooltip>
             
-            <v-select
-              :model-value="filters.scope"
-              @update:model-value="updateFilter('scope', $event)"
-              :items="[
-                { title: 'All MRs', value: 'all' },
-                { title: 'Created by me', value: 'created_by_me' },
-                { title: 'Assigned to me', value: 'assigned_to_me' }
-              ]"
-              variant="outlined"
-              hide-details
-              density="compact"
-              style="min-width: 140px;"
-            ></v-select>
+            <v-tooltip
+              text="Filter by your relationship to the merge request"
+              location="top"
+            >
+              <template v-slot:activator="{ props }">
+                <v-select
+                  v-bind="props"
+                  :model-value="filters.scope"
+                  @update:model-value="updateFilter('scope', $event)"
+                  :items="[
+                    { title: 'All MRs', value: 'all' },
+                    { title: 'Created by me', value: 'created_by_me' },
+                    { title: 'Assigned to me', value: 'assigned_to_me' }
+                  ]"
+                  variant="outlined"
+                  hide-details
+                  density="compact"
+                  style="min-width: 140px;"
+                ></v-select>
+              </template>
+            </v-tooltip>
             
             <v-btn
               @click="showAdvanced = !showAdvanced"
