@@ -43,6 +43,46 @@
       </div>
     </div>
 
+    <!-- Filter Options -->
+    <v-card class="mb-6">
+      <v-card-text class="pa-4">
+        <div class="d-flex align-center justify-space-between">
+          <div class="d-flex align-center ga-4">
+            <span class="text-body-1 font-weight-medium">Show:</span>
+            <v-chip-group
+              v-model="filterType"
+              mandatory
+              selected-class="text-primary"
+            >
+              <v-chip
+                value="all"
+                variant="outlined"
+                prepend-icon="mdi-format-list-bulleted"
+              >
+                All MRs ({{ allMrCount }})
+              </v-chip>
+              <v-chip
+                value="needs-approval"
+                variant="outlined"
+                prepend-icon="mdi-clock-outline"
+                color="warning"
+              >
+                Needs Approval ({{ needsApprovalCount }})
+              </v-chip>
+              <v-chip
+                value="ready-to-merge"
+                variant="outlined"
+                prepend-icon="mdi-check-circle"
+                color="success"
+              >
+                Ready to Merge ({{ readyToMergeCount }})
+              </v-chip>
+            </v-chip-group>
+          </div>
+        </div>
+      </v-card-text>
+    </v-card>
+
     <!-- Selection Summary & Actions -->
     <v-card class="mb-6">
       <v-card-text class="pa-4">
@@ -118,7 +158,7 @@
     <!-- Merge Request List with Selection -->
     <MRSelectionCard
       v-else
-      :merge-requests="data || []"
+      :merge-requests="filteredMrs"
       :selected-mr-ids="selectedMrIds"
       @update:selected-mr-ids="selectedMrIds = $event"
     />
@@ -150,6 +190,7 @@ const showDialog = ref(false)
 const currentAction = ref('approve')
 const isOperating = ref(false)
 const batchDialogRef = ref(null)
+const filterType = ref('all')
 
 // Fetch merge requests
 const {
@@ -164,6 +205,44 @@ const {
   refetchInterval: 60000,
   enabled: computed(() => !!authStore.token)
 })
+
+// Helper function to check if MR needs approval
+const needsApproval = (mr) => {
+  // Check if MR has required approvals
+  const approvalsRequired = mr.approvals_required || 0
+  const approvedBy = mr.approved_by || []
+  return approvedBy.length < approvalsRequired
+}
+
+// Helper function to check if MR is ready to merge
+const isReadyToMerge = (mr) => {
+  const mergeStatus = mr.merge_status || mr.detailed_merge_status
+  return mergeStatus === 'can_be_merged'
+}
+
+// Filtered merge requests based on selected filter
+const filteredMrs = computed(() => {
+  if (!data.value) return []
+
+  switch (filterType.value) {
+    case 'needs-approval':
+      return data.value.filter(mr => needsApproval(mr))
+    case 'ready-to-merge':
+      return data.value.filter(mr => isReadyToMerge(mr))
+    case 'all':
+    default:
+      return data.value
+  }
+})
+
+// Counts for filter chips
+const allMrCount = computed(() => data.value?.length || 0)
+const needsApprovalCount = computed(() =>
+  data.value?.filter(mr => needsApproval(mr)).length || 0
+)
+const readyToMergeCount = computed(() =>
+  data.value?.filter(mr => isReadyToMerge(mr)).length || 0
+)
 
 // Get selected MRs
 const selectedMrs = computed(() => {
