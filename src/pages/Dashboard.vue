@@ -65,6 +65,13 @@
           Repository Review
         </v-btn>
         <v-btn
+          color="warning"
+          to="/batch-approval-merge"
+          prepend-icon="mdi-check-all"
+        >
+          Batch Approval & Merge
+        </v-btn>
+        <v-btn
           variant="outlined"
           @click="refetch"
           :loading="isFetching"
