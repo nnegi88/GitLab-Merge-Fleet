@@ -38,7 +38,8 @@ class GeminiAPI {
     return localStorage.getItem("gemini_api_key");
   }
 
-  async generateContent(prompt) {
+  async generateContent(prompt, options = {}) {
+    const { signal } = options;
     const apiKey = this.getApiKey();
     if (!apiKey) {
       throw new Error(
@@ -86,6 +87,7 @@ class GeminiAPI {
           },
         ],
       }),
+      signal,
     });
 
     if (!response.ok) {
@@ -117,7 +119,7 @@ class GeminiAPI {
 
   // Repository review methods
   async reviewRepository(repositoryData, files, options = {}) {
-    const { focus = "comprehensive", depth = "standard" } = options;
+    const { focus = "comprehensive", depth = "standard", signal } = options;
 
     try {
       // Generate the review prompt
@@ -128,7 +130,7 @@ class GeminiAPI {
       );
 
       // Get AI response
-      const response = await this.generateContent(prompt);
+      const response = await this.generateContent(prompt, { signal });
 
       // Parse the structured response
       const parsedReview = this.reviewParser.parseRepositoryReview(response);
