@@ -541,6 +541,7 @@ const analysisResults = ref([])
 const isDiscoveringFiles = ref(false)
 const filesDiscoveredCount = ref(0)
 const totalProjectsToDiscover = ref(0)
+const abortController = ref(null)
 
 // Fetch all projects
 const { data: projects, isLoading: isLoadingProjects, error: projectsError } = useQuery({
@@ -766,16 +767,19 @@ function getResultCardClass(status) {
 
 async function startRepositoryReview() {
   if (!selectedProject.value) return
-  
+
   // Check if Gemini API key is configured
   if (!geminiAPI.getApiKey()) {
     alert('Gemini API key not configured. Please add it in Settings first.')
     return
   }
-  
+
+  // Create new AbortController for this analysis
+  abortController.value = new AbortController()
+
   isAnalyzing.value = true
   showProgress.value = true
-  
+
   // Initialize analysis results
   analysisResults.value = [{
     projectId: selectedProject.value,
@@ -816,14 +820,15 @@ async function startRepositoryReview() {
       const branch = selectedBranch.value || project?.default_branch || 'main'
       
       const repositoryData = await analyzer.analyzeRepository(
-        projectId, 
-        branch, 
+        projectId,
+        branch,
         (progress) => {
           analysisResults.value[resultIndex].currentPhase = progress.message
           if (progress.filesCount) {
             analysisResults.value[resultIndex].filesAnalyzed = progress.filesCount
           }
-        }
+        },
+        abortController.value.signal
       )
       
       // Update status to analyzing
@@ -838,7 +843,8 @@ async function startRepositoryReview() {
         {
           focus: reviewConfig.value.focus,
           depth: reviewConfig.value.depth,
-          branch: branch
+          branch: branch,
+          signal: abortController.value.signal
         }
       )
       
@@ -865,18 +871,27 @@ async function startRepositoryReview() {
       }
       
     } catch (error) {
-      console.error(`Repository analysis failed for project ${projectId}:`, error)
-      analysisResults.value[resultIndex].status = 'error'
-      analysisResults.value[resultIndex].error = error.message
+      // Check if this was a user-initiated cancellation
+      if (error.name === 'AbortError') {
+        analysisResults.value[resultIndex].status = 'error'
+        analysisResults.value[resultIndex].error = 'Review cancelled'
+      } else {
+        console.error(`Repository analysis failed for project ${projectId}:`, error)
+        analysisResults.value[resultIndex].status = 'error'
+        analysisResults.value[resultIndex].error = error.message
+      }
     }
   }
-  
+
   isAnalyzing.value = false
+  abortController.value = null
 }
 
 function cancelAnalysis() {
+  if (abortController.value) {
+    abortController.value.abort()
+  }
   isAnalyzing.value = false
-  // TODO: Implement actual cancellation logic
 }
 
 function viewResults() {
