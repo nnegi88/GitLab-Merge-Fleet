@@ -188,6 +188,34 @@ const openMergeDialog = () => {
   showDialog.value = true
 }
 
+// Get merge status error message
+const getMergeStatusError = (mergeStatus) => {
+  switch (mergeStatus) {
+    case 'cannot_be_merged':
+      return 'Cannot merge: merge conflicts exist'
+    case 'cannot_be_merged_recheck':
+      return 'Cannot merge: recheck needed'
+    case 'ci_must_pass':
+      return 'Cannot merge: CI must pass first'
+    case 'ci_still_running':
+      return 'Cannot merge: CI pipeline still running'
+    case 'discussions_not_resolved':
+      return 'Cannot merge: unresolved discussions'
+    case 'draft_status':
+      return 'Cannot merge: MR is in draft status'
+    case 'not_approved':
+      return 'Cannot merge: approval required'
+    case 'blocked_status':
+      return 'Cannot merge: MR is blocked'
+    case 'checking':
+      return 'Cannot merge: merge status still being checked'
+    case 'unchecked':
+      return 'Cannot merge: merge status not checked yet'
+    default:
+      return `Cannot merge: status is ${mergeStatus}`
+  }
+}
+
 // Handle batch operation (approve or merge)
 const handleBatchOperation = async (results) => {
   isOperating.value = true
@@ -199,12 +227,22 @@ const handleBatchOperation = async (results) => {
         await gitlabAPI.approveMergeRequest(result.projectId, result.iid)
         batchDialogRef.value?.updateResult(result.mrId, 'success')
       } else {
-        // For merge, use default options
-        await gitlabAPI.mergeMergeRequest(result.projectId, result.iid, {
-          should_remove_source_branch: false,
-          merge_when_pipeline_succeeds: false
-        })
-        batchDialogRef.value?.updateResult(result.mrId, 'success')
+        // For merge operation, validate merge status first
+        const mr = selectedMrs.value.find(m => m.id === result.mrId)
+        const mergeStatus = mr?.merge_status || mr?.detailed_merge_status
+
+        // Only attempt to merge if status is 'can_be_merged'
+        if (mergeStatus === 'can_be_merged') {
+          await gitlabAPI.mergeMergeRequest(result.projectId, result.iid, {
+            should_remove_source_branch: false,
+            merge_when_pipeline_succeeds: false
+          })
+          batchDialogRef.value?.updateResult(result.mrId, 'success')
+        } else {
+          // MR is not mergeable, report error without attempting merge
+          const errorMessage = getMergeStatusError(mergeStatus)
+          batchDialogRef.value?.updateResult(result.mrId, 'error', errorMessage)
+        }
       }
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Unknown error'
