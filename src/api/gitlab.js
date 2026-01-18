@@ -189,6 +189,14 @@ class GitLabAPI {
     return response.data
   }
 
+  async mergeMergeRequest(projectId, mrIid, options = {}) {
+    const response = await this.getClient().put(
+      `/projects/${encodeURIComponent(projectId)}/merge_requests/${mrIid}/merge`,
+      options
+    )
+    return response.data
+  }
+
   async getMergeRequestDiff(projectId, mrIid) {
     try {
       // Try to get the diff in text format first
