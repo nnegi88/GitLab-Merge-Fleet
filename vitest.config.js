@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import vuetify from 'vite-plugin-vuetify'
+import { resolve } from 'path'
 
 // https://vitest.dev/config/
 export default defineConfig({
@@ -8,14 +9,27 @@ export default defineConfig({
     vue(),
     vuetify({
       autoImport: true,
+      styles: false
     }),
   ],
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src')
+    }
+  },
   test: {
     // Use jsdom environment for DOM testing
     environment: 'jsdom',
 
     // Enable global test APIs (describe, it, expect, etc.)
     globals: true,
+
+    // Server options for dependency handling
+    server: {
+      deps: {
+        inline: ['vuetify']
+      }
+    },
 
     // Test file patterns
     include: [
