@@ -46,6 +46,7 @@ export const lazyLoadRoute = (componentPath, options = {}) => {
     'pages/Settings.vue': () => import('../pages/Settings.vue'),
     'pages/BulkCreate.vue': () => import('../pages/BulkCreate.vue'),
     'pages/BulkBranch.vue': () => import('../pages/BulkBranch.vue'),
+    'pages/BatchApprovalMerge.vue': () => import('../pages/BatchApprovalMerge.vue'),
     'pages/MergeRequestDetails.vue': () => import('../pages/MergeRequestDetails.vue'),
     'pages/RepositoryReview.vue': () => import('../pages/RepositoryReview.vue'),
     'pages/RepositoryReviewResults.vue': () => import('../pages/RepositoryReviewResults.vue'),

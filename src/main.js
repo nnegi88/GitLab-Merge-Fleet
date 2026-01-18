@@ -50,11 +50,17 @@ const routes = [
     meta: { title: 'Repository Review' },
     ...lazyLoadRoute('pages/RepositoryReview.vue')
   },
-  { 
-    path: '/repository-review/results', 
+  {
+    path: '/repository-review/results',
     name: 'repository-review-results',
     meta: { title: 'Repository Review Results' },
     ...lazyLoadRoute('pages/RepositoryReviewResults.vue')
+  },
+  {
+    path: '/batch-approval-merge',
+    name: 'batch-approval-merge',
+    meta: { title: 'Batch Approval Merge' },
+    ...lazyLoadRoute('pages/BatchApprovalMerge.vue')
   },
   // IMPORTANT: This catch-all route must be placed last in the routes array
   // to ensure it only matches when no other routes match the current path
