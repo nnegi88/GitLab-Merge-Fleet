@@ -3,13 +3,13 @@
   "spec": "001-automated-test-suite",
   "state": "building",
   "subtasks": {
-    "completed": 18,
+    "completed": 22,
     "total": 31,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Tests for Hooks and Stores",
+    "current": "E2E Tests - Critical User Flows",
     "id": null,
     "total": 4
   },
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 20,
+    "number": 24,
     "started_at": "2026-01-18T21:12:53.404799"
   },
-  "last_update": "2026-01-18T22:13:31.058701"
+  "last_update": "2026-01-18T22:26:08.332106"
 }
