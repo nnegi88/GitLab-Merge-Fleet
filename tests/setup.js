@@ -52,20 +52,23 @@ if (typeof global !== 'undefined') {
   global.sessionStorage = localStorageMock
 
   // Mock crypto API for auth store token encryption
-  global.crypto = {
-    subtle: {
-      generateKey: createMockFn(Promise.resolve('mock-key')),
-      exportKey: createMockFn(Promise.resolve(new ArrayBuffer(32))),
-      importKey: createMockFn(Promise.resolve('mock-imported-key')),
-      encrypt: createMockFn(Promise.resolve(new ArrayBuffer(16))),
-      decrypt: createMockFn(Promise.resolve(new ArrayBuffer(16)))
-    },
-    getRandomValues: createMockFn((arr) => {
-      for (let i = 0; i < arr.length; i++) {
-        arr[i] = Math.floor(Math.random() * 256)
-      }
-      return arr
-    })
+  // Only mock if crypto doesn't exist or is not read-only
+  if (!global.crypto) {
+    global.crypto = {
+      subtle: {
+        generateKey: createMockFn(Promise.resolve('mock-key')),
+        exportKey: createMockFn(Promise.resolve(new ArrayBuffer(32))),
+        importKey: createMockFn(Promise.resolve('mock-imported-key')),
+        encrypt: createMockFn(Promise.resolve(new ArrayBuffer(16))),
+        decrypt: createMockFn(Promise.resolve(new ArrayBuffer(16)))
+      },
+      getRandomValues: createMockFn((arr) => {
+        for (let i = 0; i < arr.length; i++) {
+          arr[i] = Math.floor(Math.random() * 256)
+        }
+        return arr
+      })
+    }
   }
 
   // Mock window.matchMedia for Vuetify
