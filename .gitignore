@@ -43,3 +43,8 @@ tasks/
 
 # Auto Claude data directory
 .auto-claude/
+
+# Auto Claude framework files
+.auto-claude-security.json
+.auto-claude-status
+.claude_settings.json

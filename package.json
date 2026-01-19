@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",
+    "@sentry/vue": "^7.108.0",
     "@tanstack/vue-query": "^5.28.14",
     "axios": "^1.6.8",
     "lucide-vue-next": "^0.330.0",

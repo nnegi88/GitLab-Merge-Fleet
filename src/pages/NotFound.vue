@@ -56,7 +56,6 @@ const isAuthenticated = computed(() => !!authStore.token)
 
 onMounted(() => {
   // Log 404 errors for monitoring - using console.error as 404 is an error condition
-  // TODO: Integrate with proper logging service for production monitoring
   console.error(`404 - Page not found: ${router.currentRoute.value.fullPath}`)
 })
 </script>
