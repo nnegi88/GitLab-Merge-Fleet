@@ -75,33 +75,150 @@ Example: `feat: add bulk approval functionality to dashboard`
 
 ## Testing
 
+GitLab Merge Fleet has a comprehensive automated test suite. **All new features and bug fixes must include appropriate tests.**
+
+### Test Requirements
+
+When contributing code, you must:
+
+1. **Write tests for new features**
+   - Unit tests for services, utilities, and business logic
+   - Component tests for Vue components
+   - E2E tests for new user-facing workflows
+
+2. **Update existing tests** when modifying code
+   - Fix any tests broken by your changes
+   - Add test cases for edge cases and bug fixes
+
+3. **Meet coverage requirements**
+   - Maintain 70%+ overall coverage
+   - Services and utilities should have 80%+ coverage
+   - Components should have 70%+ coverage
+
+4. **Run all tests locally before submitting PR**
+   ```bash
+   # Run all tests
+   npm test
+
+   # Run with coverage to check thresholds
+   npm run test:coverage
+
+   # Run E2E tests
+   npm run test:e2e
+   ```
+
+### Testing Stack
+
+- **Vitest**: Unit and component tests
+- **Playwright**: End-to-end browser tests
+- **Vue Test Utils**: Component testing utilities
+- **Coverage**: V8 coverage with detailed reporting
+
+### Quick Test Commands
+
+```bash
+# Run all tests (unit + component)
+npm test
+
+# Run tests in watch mode during development
+npm run test:watch
+
+# Run tests with UI for visual debugging
+npm run test:ui
+
+# Run specific test types
+npm run test:unit        # Unit tests only
+npm run test:component   # Component tests only
+npm run test:e2e         # E2E tests only
+
+# Generate coverage report
+npm run test:coverage
+```
+
+### Writing Tests
+
+**For utility functions and services:**
+- Create unit tests in `tests/unit/`
+- Test all public methods and edge cases
+- Mock external dependencies (API calls, localStorage)
+- Aim for 80%+ coverage
+
+**For Vue components:**
+- Create component tests in `tests/component/`
+- Test rendering, props, events, and user interactions
+- Use `data-testid` attributes for reliable element selection
+- Mock Vuetify, Router, and Pinia when needed
+- Aim for 70%+ coverage
+
+**For user workflows:**
+- Create E2E tests in `tests/e2e/`
+- Test complete user journeys (setup, dashboard, MR review)
+- Use Playwright for browser automation
+- Mock GitLab API responses for consistent testing
+
+**Example test structure:**
+
+```javascript
+// tests/unit/services/myService.test.js
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { MyService } from '@/services/myService'
+
+describe('MyService', () => {
+  let service
+
+  beforeEach(() => {
+    service = new MyService()
+  })
+
+  it('should handle valid input', () => {
+    const result = service.process('valid input')
+    expect(result).toBe('expected output')
+  })
+
+  it('should handle edge cases', () => {
+    expect(service.process(null)).toBe(null)
+    expect(service.process('')).toBe('')
+  })
+})
+```
+
+For detailed testing guides with examples, see **[TESTING.md](./TESTING.md)**.
+
 ### Manual Testing
+
+In addition to automated tests, please verify:
+
 - Test with different GitLab versions (14.9+)
 - Test with various repository sizes
 - Verify error handling and edge cases
 - Test on different browsers (Chrome, Firefox, Safari)
-
-### Automated Testing
-- Run existing tests: `npm test` (when available)
-- Add tests for new features
-- Ensure all tests pass before submitting PR
+- Test accessibility with keyboard navigation
 
 ## Submitting Changes
 
 ### Pull Request Process
-1. Update documentation if needed
-2. Ensure your branch is up to date with `develop`
-3. Run linting: `npm run lint`
-4. Create a pull request to `develop` branch
-5. Fill out the PR template completely
-6. Wait for code review
+1. **Ensure all tests pass** locally:
+   ```bash
+   npm test           # Unit and component tests
+   npm run test:e2e   # E2E tests
+   npm run test:coverage  # Verify coverage thresholds
+   ```
+2. Run linting: `npm run lint`
+3. Update documentation if needed
+4. Ensure your branch is up to date with `develop`
+5. Create a pull request to `develop` branch
+6. Fill out the PR template completely
+7. Wait for code review and CI checks to complete
 
 ### PR Guidelines
 - Keep PRs focused on a single feature/fix
 - Provide clear description of changes
+- **Include tests for all new code** (required)
 - Include screenshots for UI changes
 - Reference any related issues
+- Ensure CI tests pass (GitHub Actions will run automatically)
 - Be responsive to review feedback
+- Meet coverage thresholds (checked automatically in CI)
 
 ## Feature Requests & Bug Reports
 

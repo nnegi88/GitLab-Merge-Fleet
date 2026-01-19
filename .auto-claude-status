@@ -1,0 +1,25 @@
+{
+  "active": true,
+  "spec": "001-automated-test-suite",
+  "state": "building",
+  "subtasks": {
+    "completed": 22,
+    "total": 31,
+    "in_progress": 1,
+    "failed": 0
+  },
+  "phase": {
+    "current": "E2E Tests - Critical User Flows",
+    "id": null,
+    "total": 4
+  },
+  "workers": {
+    "active": 0,
+    "max": 1
+  },
+  "session": {
+    "number": 24,
+    "started_at": "2026-01-18T21:12:53.404799"
+  },
+  "last_update": "2026-01-18T22:26:08.332106"
+}
