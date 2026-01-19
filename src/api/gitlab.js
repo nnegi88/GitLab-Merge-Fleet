@@ -116,8 +116,8 @@ class GitLabAPI {
     return response.data
   }
 
-  async getProject(projectId) {
-    const response = await this.getClient().get(`/projects/${encodeURIComponent(projectId)}`)
+  async getProject(projectId, config = {}) {
+    const response = await this.getClient().get(`/projects/${encodeURIComponent(projectId)}`, config)
     return response.data
   }
 
@@ -280,7 +280,7 @@ class GitLabAPI {
   }
 
   // Repository analysis endpoints
-  async getRepositoryTree(projectId, ref = 'main', recursive = true) {
+  async getRepositoryTree(projectId, ref = 'main', recursive = true, config = {}) {
     const params = {
       ref,
       recursive,
@@ -288,15 +288,15 @@ class GitLabAPI {
     }
     const response = await this.getClient().get(
       `/projects/${encodeURIComponent(projectId)}/repository/tree`,
-      { params }
+      { params, ...config }
     )
     return response.data
   }
 
-  async getFileContent(projectId, filePath, ref = 'main') {
+  async getFileContent(projectId, filePath, ref = 'main', config = {}) {
     const response = await this.getClient().get(
       `/projects/${encodeURIComponent(projectId)}/repository/files/${encodeURIComponent(filePath)}`,
-      { params: { ref } }
+      { params: { ref }, ...config }
     )
     // Decode base64 content
     const content = atob(response.data.content)
@@ -306,16 +306,16 @@ class GitLabAPI {
     }
   }
 
-  async getFileContentBatch(projectId, filePaths, ref = 'main') {
+  async getFileContentBatch(projectId, filePaths, ref = 'main', config = {}) {
     const results = []
     const BATCH_SIZE = 5 // Process 5 files at a time to avoid rate limiting
-    
+
     for (let i = 0; i < filePaths.length; i += BATCH_SIZE) {
       const batch = filePaths.slice(i, i + BATCH_SIZE)
-      
+
       const batchPromises = batch.map(async (filePath) => {
         try {
-          const fileData = await this.getFileContent(projectId, filePath, ref)
+          const fileData = await this.getFileContent(projectId, filePath, ref, config)
           return {
             path: filePath,
             success: true,
@@ -329,22 +329,23 @@ class GitLabAPI {
           }
         }
       })
-      
+
       const batchResults = await Promise.all(batchPromises)
       results.push(...batchResults)
-      
+
       // Add delay between batches to respect rate limits
       if (i + BATCH_SIZE < filePaths.length) {
         await new Promise(resolve => setTimeout(resolve, 200))
       }
     }
-    
+
     return results
   }
 
-  async getRepositoryLanguages(projectId) {
+  async getRepositoryLanguages(projectId, config = {}) {
     const response = await this.getClient().get(
-      `/projects/${encodeURIComponent(projectId)}/languages`
+      `/projects/${encodeURIComponent(projectId)}/languages`,
+      config
     )
     return response.data
   }
