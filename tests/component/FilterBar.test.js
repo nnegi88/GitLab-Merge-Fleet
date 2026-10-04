@@ -169,7 +169,7 @@ describe('FilterBar.vue', () => {
         }
       })
 
-      const selects = wrapper.findAll('.v-select')
+      const selects = wrapper.findAllComponents({ name: 'VSelect' })
       const stateSelect = selects[0]
 
       await stateSelect.vm.$emit('update:modelValue', 'closed')
@@ -205,7 +205,7 @@ describe('FilterBar.vue', () => {
         }
       })
 
-      const selects = wrapper.findAll('.v-select')
+      const selects = wrapper.findAllComponents({ name: 'VSelect' })
       const scopeSelect = selects[1]
 
       await scopeSelect.vm.$emit('update:modelValue', 'assigned_to_me')
@@ -586,7 +586,7 @@ describe('FilterBar.vue', () => {
       await advancedButton.trigger('click')
       await wrapper.vm.$nextTick()
 
-      const selects = wrapper.findAll('.v-select')
+      const selects = wrapper.findAllComponents({ name: 'VSelect' })
       const orderBySelect = selects.find(select =>
         select.html().includes('Sort By')
       )
@@ -661,7 +661,7 @@ describe('FilterBar.vue', () => {
       await advancedButton.trigger('click')
       await wrapper.vm.$nextTick()
 
-      const selects = wrapper.findAll('.v-select')
+      const selects = wrapper.findAllComponents({ name: 'VSelect' })
       const wipSelect = selects.find(select =>
         select.html().includes('Draft/WIP')
       )

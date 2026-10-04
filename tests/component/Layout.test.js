@@ -16,35 +16,35 @@ describe('Layout.vue', () => {
 
   describe('Initial Rendering', () => {
     it('should render app bar', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const appBar = wrapper.findComponent({ name: 'VAppBar' })
       expect(appBar.exists()).toBe(true)
     })
 
     it('should render app bar with correct elevation', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const appBar = wrapper.findComponent({ name: 'VAppBar' })
       expect(appBar.props('elevation')).toBe('1')
     })
 
     it('should render app bar with white background', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const appBar = wrapper.findComponent({ name: 'VAppBar' })
       expect(appBar.props('color')).toBe('white')
     })
 
     it('should render main content area', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const main = wrapper.findComponent({ name: 'VMain' })
       expect(main.exists()).toBe(true)
     })
 
     it('should render container in main area', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const containers = wrapper.findAllComponents({ name: 'VContainer' })
       expect(containers.length).toBeGreaterThanOrEqual(2)
@@ -53,7 +53,7 @@ describe('Layout.vue', () => {
 
   describe('Home Button', () => {
     it('should render home button', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const buttons = wrapper.findAllComponents({ name: 'VBtn' })
       const homeButton = buttons.find(btn => btn.text().includes('GitLab Merge Fleet'))
@@ -61,13 +61,13 @@ describe('Layout.vue', () => {
     })
 
     it('should have correct text', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       expect(wrapper.text()).toContain('GitLab Merge Fleet')
     })
 
     it('should have source branch icon', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const buttons = wrapper.findAllComponents({ name: 'VBtn' })
       const homeButton = buttons.find(btn => btn.text().includes('GitLab Merge Fleet'))
@@ -75,7 +75,7 @@ describe('Layout.vue', () => {
     })
 
     it('should navigate to home route', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const buttons = wrapper.findAllComponents({ name: 'VBtn' })
       const homeButton = buttons.find(btn => btn.text().includes('GitLab Merge Fleet'))
@@ -83,7 +83,7 @@ describe('Layout.vue', () => {
     })
 
     it('should use text variant', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const buttons = wrapper.findAllComponents({ name: 'VBtn' })
       const homeButton = buttons.find(btn => btn.text().includes('GitLab Merge Fleet'))
@@ -91,7 +91,7 @@ describe('Layout.vue', () => {
     })
 
     it('should have text-none class', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const buttons = wrapper.findAllComponents({ name: 'VBtn' })
       const homeButton = buttons.find(btn => btn.text().includes('GitLab Merge Fleet'))
@@ -101,7 +101,7 @@ describe('Layout.vue', () => {
 
   describe('Unauthenticated State', () => {
     it('should not show user chip when not authenticated', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = null
 
@@ -110,7 +110,7 @@ describe('Layout.vue', () => {
     })
 
     it('should not show settings button when not authenticated', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = null
 
@@ -120,7 +120,7 @@ describe('Layout.vue', () => {
     })
 
     it('should not show logout button when not authenticated', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = null
 
@@ -132,7 +132,7 @@ describe('Layout.vue', () => {
 
   describe('Authenticated State', () => {
     it('should show user chip when authenticated', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
       authStore.user = { name: 'Test User', username: 'testuser' }
@@ -144,7 +144,7 @@ describe('Layout.vue', () => {
     })
 
     it('should show settings button when authenticated', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
 
@@ -156,7 +156,7 @@ describe('Layout.vue', () => {
     })
 
     it('should show logout button when authenticated', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
 
@@ -170,7 +170,7 @@ describe('Layout.vue', () => {
 
   describe('User Chip', () => {
     it('should display user name when available', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
       authStore.user = { name: 'John Doe', username: 'johndoe' }
@@ -181,7 +181,7 @@ describe('Layout.vue', () => {
     })
 
     it('should display username when name is not available', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
       authStore.user = { username: 'johndoe' }
@@ -192,7 +192,7 @@ describe('Layout.vue', () => {
     })
 
     it('should have account icon', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
       authStore.user = { name: 'Test User', username: 'testuser' }
@@ -204,7 +204,7 @@ describe('Layout.vue', () => {
     })
 
     it('should have outlined variant', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
       authStore.user = { name: 'Test User', username: 'testuser' }
@@ -216,7 +216,7 @@ describe('Layout.vue', () => {
     })
 
     it('should not render when user is null but token exists', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
       authStore.user = null
@@ -230,7 +230,7 @@ describe('Layout.vue', () => {
 
   describe('Settings Button', () => {
     it('should have settings icon', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
 
@@ -243,7 +243,7 @@ describe('Layout.vue', () => {
     })
 
     it('should navigate to settings page', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
 
@@ -255,7 +255,7 @@ describe('Layout.vue', () => {
     })
 
     it('should use text variant', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
 
@@ -268,11 +268,14 @@ describe('Layout.vue', () => {
 
     it('should have primary color when on settings page', async () => {
       wrapper = mountWithPlugins(Layout, {
+        withApp: true,
         initialRoute: '/settings'
       })
       authStore = useAuthStore()
       authStore.token = 'test-token'
 
+      // Initial navigation is async; wait for it before checking the route
+      await wrapper.vm.$router.isReady()
       await wrapper.vm.$nextTick()
 
       const buttons = wrapper.findAllComponents({ name: 'VBtn' })
@@ -282,6 +285,7 @@ describe('Layout.vue', () => {
 
     it('should have default color when not on settings page', async () => {
       wrapper = mountWithPlugins(Layout, {
+        withApp: true,
         initialRoute: '/'
       })
       authStore = useAuthStore()
@@ -297,7 +301,7 @@ describe('Layout.vue', () => {
 
   describe('Logout Button', () => {
     it('should have logout icon', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
 
@@ -310,7 +314,7 @@ describe('Layout.vue', () => {
     })
 
     it('should use text variant', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
 
@@ -322,7 +326,7 @@ describe('Layout.vue', () => {
     })
 
     it('should have title attribute', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
 
@@ -336,7 +340,7 @@ describe('Layout.vue', () => {
 
   describe('Logout Functionality', () => {
     it('should call clearToken when logout button is clicked', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
       authStore.clearToken = vi.fn()
@@ -353,7 +357,7 @@ describe('Layout.vue', () => {
     })
 
     it('should navigate to setup page when logout button is clicked', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
 
@@ -370,7 +374,7 @@ describe('Layout.vue', () => {
     })
 
     it('should handle logout flow correctly', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
       authStore.clearToken = vi.fn()
@@ -392,6 +396,7 @@ describe('Layout.vue', () => {
   describe('Slot Content', () => {
     it('should render slot content', () => {
       wrapper = mountWithPlugins(Layout, {
+        withApp: true,
         slots: {
           default: '<div class="test-slot">Test Content</div>'
         }
@@ -403,6 +408,7 @@ describe('Layout.vue', () => {
 
     it('should render slot content in main area', () => {
       wrapper = mountWithPlugins(Layout, {
+        withApp: true,
         slots: {
           default: '<div class="test-content">Slot Content</div>'
         }
@@ -414,6 +420,7 @@ describe('Layout.vue', () => {
 
     it('should support multiple slot elements', () => {
       wrapper = mountWithPlugins(Layout, {
+        withApp: true,
         slots: {
           default: '<div>First</div><div>Second</div><div>Third</div>'
         }
@@ -427,7 +434,7 @@ describe('Layout.vue', () => {
 
   describe('Layout Structure', () => {
     it('should have app bar at the top', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const appBar = wrapper.findComponent({ name: 'VAppBar' })
       const main = wrapper.findComponent({ name: 'VMain' })
@@ -437,7 +444,7 @@ describe('Layout.vue', () => {
     })
 
     it('should have container in app bar', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const appBar = wrapper.findComponent({ name: 'VAppBar' })
       const containers = appBar.findAllComponents({ name: 'VContainer' })
@@ -446,14 +453,14 @@ describe('Layout.vue', () => {
     })
 
     it('should have flex layout in app bar container', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const container = wrapper.findAll('.d-flex')
       expect(container.length).toBeGreaterThan(0)
     })
 
     it('should have container in main area', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const main = wrapper.findComponent({ name: 'VMain' })
       const containers = main.findAllComponents({ name: 'VContainer' })
@@ -462,7 +469,7 @@ describe('Layout.vue', () => {
     })
 
     it('should have mt-8 class on main container', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const main = wrapper.findComponent({ name: 'VMain' })
       const container = main.findComponent({ name: 'VContainer' })
@@ -473,35 +480,35 @@ describe('Layout.vue', () => {
 
   describe('Vuetify Components', () => {
     it('should use VAppBar component', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const appBar = wrapper.findComponent({ name: 'VAppBar' })
       expect(appBar.exists()).toBe(true)
     })
 
     it('should use VMain component', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const main = wrapper.findComponent({ name: 'VMain' })
       expect(main.exists()).toBe(true)
     })
 
     it('should use VContainer components', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const containers = wrapper.findAllComponents({ name: 'VContainer' })
       expect(containers.length).toBeGreaterThanOrEqual(2)
     })
 
     it('should use VBtn components', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const buttons = wrapper.findAllComponents({ name: 'VBtn' })
       expect(buttons.length).toBeGreaterThanOrEqual(1)
     })
 
     it('should use VChip component when authenticated with user', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
       authStore.user = { name: 'Test User', username: 'testuser' }
@@ -516,6 +523,7 @@ describe('Layout.vue', () => {
   describe('Integration', () => {
     it('should work with typical authenticated user flow', async () => {
       wrapper = mountWithPlugins(Layout, {
+        withApp: true,
         slots: {
           default: '<div>Dashboard Content</div>'
         }
@@ -539,7 +547,7 @@ describe('Layout.vue', () => {
     })
 
     it('should handle state transitions correctly', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
 
       authStore.token = null
@@ -557,7 +565,7 @@ describe('Layout.vue', () => {
     })
 
     it('should complete logout flow', async () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
       authStore = useAuthStore()
       authStore.token = 'test-token'
       authStore.user = { name: 'Test User', username: 'testuser' }
@@ -584,28 +592,28 @@ describe('Layout.vue', () => {
 
   describe('Responsive Design', () => {
     it('should use container for responsive layout', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const containers = wrapper.findAllComponents({ name: 'VContainer' })
       expect(containers.length).toBeGreaterThanOrEqual(2)
     })
 
     it('should have flex layout for header', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const flexContainers = wrapper.findAll('.d-flex')
       expect(flexContainers.length).toBeGreaterThan(0)
     })
 
     it('should have alignment classes', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const alignedElements = wrapper.findAll('.align-center')
       expect(alignedElements.length).toBeGreaterThan(0)
     })
 
     it('should have justify space between', () => {
-      wrapper = mountWithPlugins(Layout)
+      wrapper = mountWithPlugins(Layout, { withApp: true })
 
       const justifiedElements = wrapper.findAll('.justify-space-between')
       expect(justifiedElements.length).toBeGreaterThan(0)

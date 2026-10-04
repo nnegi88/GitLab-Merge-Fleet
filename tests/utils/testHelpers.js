@@ -2,6 +2,7 @@
  * Test helper utilities for Vue component and unit testing
  */
 
+import { h } from 'vue'
 import { mount } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { createPinia } from 'pinia'
@@ -27,8 +28,13 @@ export function createMockRouter(options = {}) {
     ...routes
   ]
 
+  // Start the history at initialRoute. Installing the router navigates to the
+  // history's location, which would otherwise override the push below.
+  const history = createMemoryHistory()
+  history.replace(initialRoute)
+
   const router = createRouter({
-    history: createMemoryHistory(),
+    history,
     routes: defaultRoutes
   })
 
@@ -92,6 +98,10 @@ export function getMockVueQueryPlugin() {
  * @param {Object} options.pinia - Custom Pinia instance
  * @param {Object} options.vuetify - Custom Vuetify instance
  * @param {Object} options.initialRoute - Initial route for router
+ * @param {Boolean} options.withApp - Render inside a VApp, for components that need
+ *   Vuetify's layout (VAppBar, VMain, ...) or an overlay target (VSnackbar, ...).
+ *   Returns the wrapper of the component itself; props, attrs and slots are
+ *   forwarded to it, but setProps is not supported (default: false)
  * @returns {Wrapper} Component wrapper
  */
 export function mountWithPlugins(component, options = {}) {
@@ -104,6 +114,7 @@ export function mountWithPlugins(component, options = {}) {
     pinia = null,
     vuetify = null,
     initialRoute = '/',
+    withApp = false,
     ...mountOptions
   } = options
 
@@ -130,6 +141,23 @@ export function mountWithPlugins(component, options = {}) {
     plugins.push([plugin, vueQueryOptions])
   }
 
+  if (withApp) {
+    const { props, attrs, slots, ...appMountOptions } = mountOptions
+    const App = {
+      render: () => h(components.VApp, null, {
+        default: () => h(component, { ...attrs, ...props }, toSlotFunctions(slots)),
+      }),
+    }
+    const appWrapper = mount(App, {
+      ...appMountOptions,
+      global: {
+        plugins,
+        ...appMountOptions.global,
+      },
+    })
+    return appWrapper.findComponent(component)
+  }
+
   return mount(component, {
     global: {
       plugins,
@@ -137,6 +165,24 @@ export function mountWithPlugins(component, options = {}) {
     },
     ...mountOptions,
   })
+}
+
+/**
+ * Convert mount-style slots (template strings, components or functions)
+ * into render-function slots
+ * @param {Object} slots - Slots as passed to mount()
+ * @returns {Object|undefined} Slot functions
+ */
+function toSlotFunctions(slots) {
+  if (!slots) return undefined
+
+  return Object.fromEntries(
+    Object.entries(slots).map(([name, slot]) => {
+      if (typeof slot === 'function') return [name, slot]
+      const slotComponent = typeof slot === 'string' ? { template: slot } : slot
+      return [name, () => h(slotComponent)]
+    })
+  )
 }
 
 /**

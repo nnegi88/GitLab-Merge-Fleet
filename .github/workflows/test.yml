@@ -34,6 +34,8 @@ jobs:
         run: npm run test:unit
 
       - name: Run component tests
+        # Run even when unit tests fail, so CI reports both suites
+        if: always()
         run: npm run test:component
 
       - name: Run E2E tests

@@ -186,7 +186,8 @@ describe('GitLabAPI', () => {
     it('should handle 401 errors and clear token', async () => {
       const error = {
         response: {
-          status: 401
+          status: 401,
+          headers: {}
         },
         config: {
           headers: {}
@@ -201,7 +202,8 @@ describe('GitLabAPI', () => {
     it('should not clear token on 401 if X-Propagate-401 header is present', async () => {
       const error = {
         response: {
-          status: 401
+          status: 401,
+          headers: {}
         },
         config: {
           headers: {
@@ -319,6 +321,13 @@ describe('GitLabAPI', () => {
 
       expect(GitLabAPI.isApproachingRateLimit()).toBe(false)
     })
+
+    it('should return true when no requests remain', () => {
+      GitLabAPI.rateLimitInfo.limit = 100
+      GitLabAPI.rateLimitInfo.remaining = 0
+
+      expect(GitLabAPI.isApproachingRateLimit()).toBe(true)
+    })
   })
 
   describe('waitForRateLimit', () => {
@@ -427,7 +436,7 @@ describe('GitLabAPI', () => {
 
       const result = await GitLabAPI.getProject(1)
 
-      expect(mockClient.get).toHaveBeenCalledWith('/projects/1')
+      expect(mockClient.get).toHaveBeenCalledWith('/projects/1', {})
       expect(result).toEqual(project)
     })
 
@@ -437,7 +446,16 @@ describe('GitLabAPI', () => {
 
       await GitLabAPI.getProject('group/project')
 
-      expect(mockClient.get).toHaveBeenCalledWith('/projects/group%2Fproject')
+      expect(mockClient.get).toHaveBeenCalledWith('/projects/group%2Fproject', {})
+    })
+
+    it('should forward an AbortController signal to the request', async () => {
+      mockClient.get.mockResolvedValue({ data: {} })
+      const { signal } = new AbortController()
+
+      await GitLabAPI.getProject(1, { signal })
+
+      expect(mockClient.get).toHaveBeenCalledWith('/projects/1', { signal })
     })
   })
 
@@ -967,8 +985,17 @@ describe('GitLabAPI', () => {
 
       const result = await GitLabAPI.getRepositoryLanguages(1)
 
-      expect(mockClient.get).toHaveBeenCalledWith('/projects/1/languages')
+      expect(mockClient.get).toHaveBeenCalledWith('/projects/1/languages', {})
       expect(result).toEqual(languages)
+    })
+
+    it('should forward an AbortController signal to the request', async () => {
+      mockClient.get.mockResolvedValue({ data: {} })
+      const { signal } = new AbortController()
+
+      await GitLabAPI.getRepositoryLanguages(1, { signal })
+
+      expect(mockClient.get).toHaveBeenCalledWith('/projects/1/languages', { signal })
     })
   })
 

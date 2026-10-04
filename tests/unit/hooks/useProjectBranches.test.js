@@ -76,6 +76,8 @@ describe('useProjectBranches', () => {
 
       expect(hook.projectsLoading[1]).toBe(true)
 
+      // Mocked API calls resolve on timers; advance the fake clock
+      await vi.runAllTimersAsync()
       await promise
 
       expect(hook.projectsLoading[1]).toBe(false)
@@ -138,6 +140,8 @@ describe('useProjectBranches', () => {
       const promise1 = hook.fetchBranchesForProject(1)
       const promise2 = hook.fetchBranchesForProject(1)
 
+      // Mocked API calls resolve on timers; advance the fake clock
+      await vi.runAllTimersAsync()
       await promise1
       await promise2
 
@@ -255,6 +259,8 @@ describe('useProjectBranches', () => {
       expect(hook.isFetchingBranches.value).toBe(true)
       expect(hook.totalProjectsToLoad.value).toBe(2)
 
+      // Mocked API calls resolve on timers; advance the fake clock
+      await vi.runAllTimersAsync()
       await promise
 
       expect(hook.isFetchingBranches.value).toBe(false)
@@ -279,7 +285,10 @@ describe('useProjectBranches', () => {
       })
 
       const hook = useProjectBranches()
-      await hook.fetchBranchesThrottled(projectIds)
+      const promise = hook.fetchBranchesThrottled(projectIds)
+      // Batches are separated by a timer; advance the fake clock
+      await vi.runAllTimersAsync()
+      await promise
 
       expect(fetchOrder).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
       expect(gitlabAPI.getBranches).toHaveBeenCalledTimes(8)
@@ -394,6 +403,8 @@ describe('useProjectBranches', () => {
 
       expect(hook.isLoadingCommonBranches.value).toBe(true)
 
+      // Mocked API calls resolve on timers; advance the fake clock
+      await vi.runAllTimersAsync()
       await promise
 
       expect(hook.isLoadingCommonBranches.value).toBe(false)
@@ -466,12 +477,15 @@ describe('useProjectBranches', () => {
     })
 
     it('should handle unexpected errors', async () => {
-      gitlabAPI.getBranches = vi.fn().mockImplementation(() => {
+      // A failing getBranches is handled per project, so trigger an error
+      // outside the per-project fetch: the project name lookup throws
+      gitlabAPI.getBranches = vi.fn().mockRejectedValue(new Error('Network error'))
+      const throwingGetProjectName = () => {
         throw new Error('Unexpected error')
-      })
+      }
 
       const hook = useProjectBranches()
-      const result = await hook.fetchCommonBranches([1], mockGetProjectName)
+      const result = await hook.fetchCommonBranches([1], throwingGetProjectName)
 
       expect(hook.commonBranchesError.value).toBe('Unable to calculate common branches. Using default branches.')
       expect(result).toEqual(['main', 'master', 'develop'])
@@ -525,6 +539,8 @@ describe('useProjectBranches', () => {
 
         expect(hook.isProjectBranchesLoading.value(1)).toBe(true)
 
+        // Mocked API calls resolve on timers; advance the fake clock
+        await vi.runAllTimersAsync()
         await promise
 
         expect(hook.isProjectBranchesLoading.value(1)).toBe(false)
