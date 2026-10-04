@@ -1,9 +1,29 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mountWithPlugins } from '../utils/testHelpers.js'
 import GlobalErrorBanner from '../../src/components/GlobalErrorBanner.vue'
 
 describe('GlobalErrorBanner.vue', () => {
   let wrapper
+
+  // VSnackbar needs a VApp around it, only renders its content once shown,
+  // and teleports that content into Vuetify's overlay container on
+  // document.body, so content assertions open the banner and read the body.
+  const mountBanner = () => mountWithPlugins(GlobalErrorBanner, { withApp: true })
+
+  const mountShownBanner = async () => {
+    const banner = mountBanner()
+    banner.vm.showError()
+    await banner.vm.$nextTick()
+    return banner
+  }
+
+  const bannerText = () => document.body.textContent
+
+  const findInBanner = (selector) => document.body.querySelector(`.v-snackbar ${selector}`)
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
 
   beforeEach(() => {
     wrapper = null
@@ -14,7 +34,7 @@ describe('GlobalErrorBanner.vue', () => {
 
   describe('Initial State', () => {
     it('should not be visible initially', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+      wrapper = mountBanner()
 
       const snackbar = wrapper.findComponent({ name: 'VSnackbar' })
       expect(snackbar.exists()).toBe(true)
@@ -22,7 +42,7 @@ describe('GlobalErrorBanner.vue', () => {
     })
 
     it('should render with correct color and variant', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+      wrapper = mountBanner()
 
       const snackbar = wrapper.findComponent({ name: 'VSnackbar' })
       expect(snackbar.props('color')).toBe('error')
@@ -30,21 +50,21 @@ describe('GlobalErrorBanner.vue', () => {
     })
 
     it('should render at top location', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+      wrapper = mountBanner()
 
       const snackbar = wrapper.findComponent({ name: 'VSnackbar' })
       expect(snackbar.props('location')).toBe('top')
     })
 
     it('should have infinite timeout', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+      wrapper = mountBanner()
 
       const snackbar = wrapper.findComponent({ name: 'VSnackbar' })
       expect(snackbar.props('timeout')).toBe(-1)
     })
 
     it('should be multi-line', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+      wrapper = mountBanner()
 
       const snackbar = wrapper.findComponent({ name: 'VSnackbar' })
       expect(snackbar.props('multiLine')).toBe(true)
@@ -52,20 +72,20 @@ describe('GlobalErrorBanner.vue', () => {
   })
 
   describe('Content', () => {
-    it('should render error title', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+    it('should render error title', async () => {
+      wrapper = await mountShownBanner()
 
-      expect(wrapper.text()).toContain('Application Error')
+      expect(bannerText()).toContain('Application Error')
     })
 
-    it('should render error message', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+    it('should render error message', async () => {
+      wrapper = await mountShownBanner()
 
-      expect(wrapper.text()).toContain('Failed to load required resources')
+      expect(bannerText()).toContain('Failed to load required resources')
     })
 
-    it('should render alert icon', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+    it('should render alert icon', async () => {
+      wrapper = await mountShownBanner()
 
       const icon = wrapper.findComponent({ name: 'VIcon' })
       expect(icon.exists()).toBe(true)
@@ -73,20 +93,20 @@ describe('GlobalErrorBanner.vue', () => {
   })
 
   describe('Buttons', () => {
-    it('should render Reload button', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+    it('should render Reload button', async () => {
+      wrapper = await mountShownBanner()
 
-      expect(wrapper.text()).toContain('Reload')
+      expect(bannerText()).toContain('Reload')
     })
 
-    it('should render Dismiss button', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+    it('should render Dismiss button', async () => {
+      wrapper = await mountShownBanner()
 
-      expect(wrapper.text()).toContain('Dismiss')
+      expect(bannerText()).toContain('Dismiss')
     })
 
-    it('should render buttons with correct variant', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+    it('should render buttons with correct variant', async () => {
+      wrapper = await mountShownBanner()
 
       const buttons = wrapper.findAllComponents({ name: 'VBtn' })
       expect(buttons.length).toBe(2)
@@ -95,8 +115,8 @@ describe('GlobalErrorBanner.vue', () => {
       })
     })
 
-    it('should render buttons with correct color', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+    it('should render buttons with correct color', async () => {
+      wrapper = await mountShownBanner()
 
       const buttons = wrapper.findAllComponents({ name: 'VBtn' })
       expect(buttons.length).toBe(2)
@@ -105,8 +125,8 @@ describe('GlobalErrorBanner.vue', () => {
       })
     })
 
-    it('should render buttons with correct size', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+    it('should render buttons with correct size', async () => {
+      wrapper = await mountShownBanner()
 
       const buttons = wrapper.findAllComponents({ name: 'VBtn' })
       expect(buttons.length).toBe(2)
@@ -118,14 +138,14 @@ describe('GlobalErrorBanner.vue', () => {
 
   describe('showError Method', () => {
     it('should expose showError method', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+      wrapper = mountBanner()
 
       expect(wrapper.vm.showError).toBeDefined()
       expect(typeof wrapper.vm.showError).toBe('function')
     })
 
     it('should make banner visible when showError is called', async () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+      wrapper = mountBanner()
 
       const snackbar = wrapper.findComponent({ name: 'VSnackbar' })
       expect(snackbar.props('modelValue')).toBe(false)
@@ -137,19 +157,19 @@ describe('GlobalErrorBanner.vue', () => {
     })
 
     it('should display content when error is shown', async () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+      wrapper = mountBanner()
 
       wrapper.vm.showError()
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.text()).toContain('Application Error')
-      expect(wrapper.text()).toContain('Failed to load required resources')
+      expect(bannerText()).toContain('Application Error')
+      expect(bannerText()).toContain('Failed to load required resources')
     })
   })
 
   describe('Dismiss Functionality', () => {
     it('should hide banner when Dismiss button is clicked', async () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+      wrapper = mountBanner()
 
       // Show the banner first
       wrapper.vm.showError()
@@ -170,7 +190,7 @@ describe('GlobalErrorBanner.vue', () => {
     })
 
     it('should toggle banner visibility multiple times', async () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+      wrapper = mountBanner()
 
       const snackbar = wrapper.findComponent({ name: 'VSnackbar' })
 
@@ -195,7 +215,7 @@ describe('GlobalErrorBanner.vue', () => {
 
   describe('Reload Functionality', () => {
     it('should call window.location.reload when Reload button is clicked', async () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+      wrapper = mountBanner()
 
       // Show the banner first
       wrapper.vm.showError()
@@ -213,7 +233,7 @@ describe('GlobalErrorBanner.vue', () => {
     })
 
     it('should reload page when Reload is clicked multiple times', async () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+      wrapper = mountBanner()
 
       wrapper.vm.showError()
       await wrapper.vm.$nextTick()
@@ -229,35 +249,35 @@ describe('GlobalErrorBanner.vue', () => {
   })
 
   describe('Layout', () => {
-    it('should render content in flex container', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+    it('should render content in flex container', async () => {
+      wrapper = await mountShownBanner()
 
-      const flexContainer = wrapper.find('.d-flex')
-      expect(flexContainer.exists()).toBe(true)
-      expect(flexContainer.classes()).toContain('align-center')
+      const flexContainer = findInBanner('.d-flex')
+      expect(flexContainer).not.toBeNull()
+      expect(flexContainer.classList).toContain('align-center')
     })
 
-    it('should render title with correct styling', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+    it('should render title with correct styling', async () => {
+      wrapper = await mountShownBanner()
 
-      const title = wrapper.find('.font-weight-medium')
-      expect(title.exists()).toBe(true)
-      expect(title.text()).toBe('Application Error')
+      const title = findInBanner('.font-weight-medium')
+      expect(title).not.toBeNull()
+      expect(title.textContent.trim()).toBe('Application Error')
     })
 
-    it('should render message with correct styling', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+    it('should render message with correct styling', async () => {
+      wrapper = await mountShownBanner()
 
-      const message = wrapper.find('.text-body-2')
-      expect(message.exists()).toBe(true)
-      expect(message.text()).toBe('Failed to load required resources')
-      expect(message.classes()).toContain('mt-1')
+      const message = findInBanner('.text-body-2')
+      expect(message).not.toBeNull()
+      expect(message.textContent.trim()).toBe('Failed to load required resources')
+      expect(message.classList).toContain('mt-1')
     })
   })
 
   describe('Integration', () => {
     it('should work with typical error scenario', async () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+      wrapper = mountBanner()
 
       // Initial state - not visible
       const snackbar = wrapper.findComponent({ name: 'VSnackbar' })
@@ -267,7 +287,7 @@ describe('GlobalErrorBanner.vue', () => {
       wrapper.vm.showError()
       await wrapper.vm.$nextTick()
       expect(snackbar.props('modelValue')).toBe(true)
-      expect(wrapper.text()).toContain('Application Error')
+      expect(bannerText()).toContain('Application Error')
 
       // User chooses to dismiss
       const buttons = wrapper.findAllComponents({ name: 'VBtn' })
@@ -278,7 +298,7 @@ describe('GlobalErrorBanner.vue', () => {
     })
 
     it('should work when user chooses to reload', async () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+      wrapper = mountBanner()
 
       // Error occurs
       wrapper.vm.showError()
@@ -295,28 +315,28 @@ describe('GlobalErrorBanner.vue', () => {
 
   describe('Vuetify Components', () => {
     it('should use VSnackbar component', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+      wrapper = mountBanner()
 
       const snackbar = wrapper.findComponent({ name: 'VSnackbar' })
       expect(snackbar.exists()).toBe(true)
     })
 
-    it('should use VIcon component', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+    it('should use VIcon component', async () => {
+      wrapper = await mountShownBanner()
 
       const icon = wrapper.findComponent({ name: 'VIcon' })
       expect(icon.exists()).toBe(true)
     })
 
-    it('should use VBtn components', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+    it('should use VBtn components', async () => {
+      wrapper = await mountShownBanner()
 
       const buttons = wrapper.findAllComponents({ name: 'VBtn' })
       expect(buttons.length).toBe(2)
     })
 
-    it('should use actions slot for buttons', () => {
-      wrapper = mountWithPlugins(GlobalErrorBanner)
+    it('should use actions slot for buttons', async () => {
+      wrapper = await mountShownBanner()
 
       const snackbar = wrapper.findComponent({ name: 'VSnackbar' })
       expect(snackbar.exists()).toBe(true)
