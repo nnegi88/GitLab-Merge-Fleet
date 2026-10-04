@@ -2,6 +2,11 @@ import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import vuetify from 'vite-plugin-vuetify'
 import { resolve } from 'path'
+import process from 'node:process'
+
+// Run tests in UTC so date formatting is the same on every machine and in CI.
+// Set here, before workers start, so every worker inherits it.
+process.env.TZ = 'UTC'
 
 // https://vitest.dev/config/
 export default defineConfig({
