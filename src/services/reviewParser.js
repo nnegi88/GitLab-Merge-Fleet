@@ -47,28 +47,28 @@ export class ReviewParserService {
     }
 
     // Try to parse structured sections using both old and new patterns
-    const overallMatch = cleanedText.match(/##\s*🔍\s*Overall Assessment\s*(.*?)(?=##|$)/s) ||
-                        cleanedText.match(/\*\*Overall Assessment\*\*:?\s*(.*?)(?=\*\*|$)/s)
+    const overallMatch = cleanedText.match(/##\s*🔍\s*Overall Assessment\s*(.*?)(?=^#{1,2}[ \t]|(?![\s\S]))/ms) ||
+                        cleanedText.match(/\*\*Overall Assessment\*\*:?\s*(.*?)(?=\*\*|^#{1,2}[ \t]|(?![\s\S]))/ms)
     if (overallMatch) sections.overall = overallMatch[1].trim()
 
-    const codeQualityMatch = cleanedText.match(/##\s*🐛\s*Code Quality Issues\s*(.*?)(?=##|$)/s) ||
-                            cleanedText.match(/\*\*Code Quality Issues\*\*:?\s*(.*?)(?=\*\*|$)/s)
+    const codeQualityMatch = cleanedText.match(/##\s*🐛\s*Code Quality Issues\s*(.*?)(?=^#{1,2}[ \t]|(?![\s\S]))/ms) ||
+                            cleanedText.match(/\*\*Code Quality Issues\*\*:?\s*(.*?)(?=\*\*|^#{1,2}[ \t]|(?![\s\S]))/ms)
     if (codeQualityMatch) sections.codeQuality = codeQualityMatch[1].trim()
 
-    const styleMatch = cleanedText.match(/##\s*🎨\s*Style & Best Practices\s*(.*?)(?=##|$)/s) ||
-                      cleanedText.match(/\*\*Style & Best Practices\*\*:?\s*(.*?)(?=\*\*|$)/s)
+    const styleMatch = cleanedText.match(/##\s*🎨\s*Style & Best Practices\s*(.*?)(?=^#{1,2}[ \t]|(?![\s\S]))/ms) ||
+                      cleanedText.match(/\*\*Style & Best Practices\*\*:?\s*(.*?)(?=\*\*|^#{1,2}[ \t]|(?![\s\S]))/ms)
     if (styleMatch) sections.style = styleMatch[1].trim()
 
-    const performanceMatch = cleanedText.match(/##\s*⚡\s*Performance Considerations\s*(.*?)(?=##|$)/s) ||
-                             cleanedText.match(/\*\*Performance Considerations\*\*:?\s*(.*?)(?=\*\*|$)/s)
+    const performanceMatch = cleanedText.match(/##\s*⚡\s*Performance Considerations\s*(.*?)(?=^#{1,2}[ \t]|(?![\s\S]))/ms) ||
+                             cleanedText.match(/\*\*Performance Considerations\*\*:?\s*(.*?)(?=\*\*|^#{1,2}[ \t]|(?![\s\S]))/ms)
     if (performanceMatch) sections.performance = performanceMatch[1].trim()
 
-    const securityMatch = cleanedText.match(/##\s*🔒\s*Security Concerns\s*(.*?)(?=##|$)/s) ||
-                          cleanedText.match(/\*\*Security Concerns\*\*:?\s*(.*?)(?=\*\*|$)/s)
+    const securityMatch = cleanedText.match(/##\s*🔒\s*Security Concerns\s*(.*?)(?=^#{1,2}[ \t]|(?![\s\S]))/ms) ||
+                          cleanedText.match(/\*\*Security Concerns\*\*:?\s*(.*?)(?=\*\*|^#{1,2}[ \t]|(?![\s\S]))/ms)
     if (securityMatch) sections.security = securityMatch[1].trim()
 
-    const suggestionsMatch = cleanedText.match(/##\s*💡\s*Suggestions\s*(.*?)(?=##|$)/s) ||
-                            cleanedText.match(/\*\*Suggestions\*\*:?\s*(.*?)(?=\*\*|$)/s)
+    const suggestionsMatch = cleanedText.match(/##\s*💡\s*Suggestions\s*(.*?)(?=^#{1,2}[ \t]|(?![\s\S]))/ms) ||
+                            cleanedText.match(/\*\*Suggestions\*\*:?\s*(.*?)(?=\*\*|^#{1,2}[ \t]|(?![\s\S]))/ms)
     if (suggestionsMatch) sections.suggestions = suggestionsMatch[1].trim()
 
     return {
@@ -139,16 +139,21 @@ export class ReviewParserService {
    * Extract a specific section from review text
    */
   extractSection(text, sectionTitle) {
+    const title = sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    // A section ends at the next # or ## heading (### subsections stay inside it) or at end of text
+    const sectionEnd = '^#{1,2}[ \\t]|(?![\\s\\S])'
+
     // Try to extract section content using various patterns
     const patterns = [
-      new RegExp(`##\\s*${sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*(.*?)(?=##|$)`, 's'),
-      new RegExp(`\\*\\*${sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\*\\*:?\\s*(.*?)(?=\\*\\*|$)`, 's'),
-      new RegExp(`${sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*(.*?)(?=##|\\*\\*|$)`, 's')
+      new RegExp(`##\\s*${title}\\s*(.*?)(?=${sectionEnd})`, 'ms'),
+      new RegExp(`\\*\\*${title}\\*\\*:?\\s*(.*?)(?=\\*\\*|${sectionEnd})`, 'ms'),
+      new RegExp(`${title}\\s*(.*?)(?=\\*\\*|${sectionEnd})`, 'ms')
     ]
     
     for (const pattern of patterns) {
       const match = text.match(pattern)
-      if (match && match[1]) {
+      // A section that is present but empty returns '', not the placeholder
+      if (match) {
         return match[1].trim()
       }
     }
