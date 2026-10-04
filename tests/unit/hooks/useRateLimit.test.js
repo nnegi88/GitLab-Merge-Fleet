@@ -17,7 +17,8 @@ describe('useRateLimit', () => {
       observed: new Date('2024-01-01T11:00:00Z').toISOString()
     }
 
-    gitlabAPI.getRateLimitInfo = vi.fn(() => mockRateLimitInfo)
+    // Like the real API, return a fresh copy on every call
+    gitlabAPI.getRateLimitInfo = vi.fn(() => ({ ...mockRateLimitInfo }))
     gitlabAPI.isApproachingRateLimit = vi.fn(() => false)
   })
 
@@ -480,7 +481,8 @@ describe('useRateLimit', () => {
 
       const { timeUntilReset } = useRateLimit()
 
-      expect(timeUntilReset.value).toBe('Now')
+      // An unparseable reset time is treated like a missing one
+      expect(timeUntilReset.value).toBeNull()
     })
 
     it('should handle fractional percentages', () => {

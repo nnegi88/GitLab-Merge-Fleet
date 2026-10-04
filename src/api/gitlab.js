@@ -80,7 +80,8 @@ class GitLabAPI {
   }
 
   isApproachingRateLimit(threshold = 0.1) {
-    if (!this.rateLimitInfo.limit || !this.rateLimitInfo.remaining) {
+    // remaining can legitimately be 0, so only treat a missing value as unknown
+    if (!this.rateLimitInfo.limit || this.rateLimitInfo.remaining == null) {
       return false
     }
     const percentageRemaining = this.rateLimitInfo.remaining / this.rateLimitInfo.limit

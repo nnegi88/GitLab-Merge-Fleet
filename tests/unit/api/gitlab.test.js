@@ -321,6 +321,13 @@ describe('GitLabAPI', () => {
 
       expect(GitLabAPI.isApproachingRateLimit()).toBe(false)
     })
+
+    it('should return true when no requests remain', () => {
+      GitLabAPI.rateLimitInfo.limit = 100
+      GitLabAPI.rateLimitInfo.remaining = 0
+
+      expect(GitLabAPI.isApproachingRateLimit()).toBe(true)
+    })
   })
 
   describe('waitForRateLimit', () => {

@@ -11,13 +11,16 @@ export function useRateLimit() {
   
   // Check if approaching rate limit
   const isApproachingLimit = computed(() => {
+    // Depend on rateLimitInfo so this re-evaluates after updateRateLimitInfo()
+    rateLimitInfo.value
     return gitlabAPI.isApproachingRateLimit(0.2) // Warn when 20% remaining
   })
   
   // Get percentage of rate limit remaining
   const rateLimitPercentage = computed(() => {
     const info = rateLimitInfo.value
-    if (!info.limit || !info.remaining) return 100
+    // remaining can legitimately be 0, so only treat a missing value as unknown
+    if (!info.limit || info.remaining == null) return 100
     return Math.round((info.remaining / info.limit) * 100)
   })
   
@@ -30,6 +33,8 @@ export function useRateLimit() {
     const resetTime = new Date(info.reset)
     const diff = resetTime.getTime() - now.getTime()
     
+    // An unparseable reset time is treated like a missing one
+    if (Number.isNaN(diff)) return null
     if (diff <= 0) return 'Now'
     
     const minutes = Math.floor(diff / 60000)
