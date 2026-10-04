@@ -13,6 +13,9 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # A healthy run (unit, component, E2E in two browsers, coverage) takes
+    # about 10 minutes; cap failing E2E runs instead of letting them run for hours
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
