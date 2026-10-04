@@ -103,10 +103,42 @@ Consistent style
 
       const result = reviewParser.parseMergeRequestReview(reviewText)
 
-      expect(result.sections.overall).toBe('Good work')
+      // A ## section runs until the next # or ## heading, so bold lines stay inside it
+      expect(result.sections.overall).toBe('Good work\n\n**Code Quality Issues**: Some minor issues')
+      expect(result.sections.style).toBe('Consistent style\n\n**Performance Considerations**: No issues')
+      // The bold fallback stops at the next ## heading
       expect(result.sections.codeQuality).toBe('Some minor issues')
-      expect(result.sections.style).toBe('Consistent style')
       expect(result.sections.performance).toBe('No issues')
+    })
+
+    it('should keep ### subsections inside a ## section', () => {
+      const reviewText = `## 🔍 Overall Assessment
+Summary
+
+## 🐛 Code Quality Issues
+Intro
+### src/api/gitlab.js
+- Missing error handling
+
+## 🎨 Style & Best Practices
+Fine`
+
+      const result = reviewParser.parseMergeRequestReview(reviewText)
+
+      expect(result.sections.codeQuality).toBe('Intro\n### src/api/gitlab.js\n- Missing error handling')
+      expect(result.sections.style).toBe('Fine')
+    })
+
+    it('should return empty string for a ## section with no content', () => {
+      const reviewText = `## 🔍 Overall Assessment
+
+## 🐛 Code Quality Issues
+None`
+
+      const result = reviewParser.parseMergeRequestReview(reviewText)
+
+      expect(result.sections.overall).toBe('')
+      expect(result.sections.codeQuality).toBe('None')
     })
 
     it('should handle review with multiline sections', () => {
@@ -569,15 +601,51 @@ Content here
       expect(result).toBe('')
     })
 
-    it('should extract content until next marker', () => {
+    it('should extract content until next heading', () => {
+      const text = `## Section 1
+Content 1
+## Section 2
+Content 2`
+
+      const result = reviewParser.extractSection(text, 'Section 1')
+
+      expect(result).toBe('Content 1')
+      expect(result).not.toContain('Section 2')
+    })
+
+    it('should keep bold lines inside a ## section', () => {
       const text = `## Section 1
 Content 1
 **Section 2**: Content 2`
 
       const result = reviewParser.extractSection(text, 'Section 1')
 
+      expect(result).toBe('Content 1\n**Section 2**: Content 2')
+    })
+
+    it('should keep ### subsections inside a ## section', () => {
+      const text = `## 🏗️ Repository Overview
+Intro line
+### Frontend
+Vue 3 app
+- **src/api/gitlab.js**: handles API
+## 📊 Code Quality Assessment
+Good`
+
+      const result = reviewParser.extractSection(text, '🏗️ Repository Overview')
+
+      expect(result).toBe('Intro line\n### Frontend\nVue 3 app\n- **src/api/gitlab.js**: handles API')
+    })
+
+    it('should stop a bold-title section at the next ## heading', () => {
+      const text = `**Section 1**: Content 1
+
+## Section 2
+Content 2`
+
+      const result = reviewParser.extractSection(text, 'Section 1')
+
       expect(result).toBe('Content 1')
-      expect(result).not.toContain('Section 2')
     })
 
     it('should handle sections with nested markdown', () => {
