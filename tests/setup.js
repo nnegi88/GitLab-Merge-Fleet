@@ -108,8 +108,8 @@ if (typeof global !== 'undefined') {
   }
 
   // Mock visualViewport (missing in jsdom) for Vuetify overlay positioning (VSnackbar, VMenu, ...)
-  if (!global.visualViewport) {
-    global.visualViewport = {
+  if (!globalThis.visualViewport) {
+    globalThis.visualViewport = {
       width: 1024,
       height: 768,
       offsetLeft: 0,
