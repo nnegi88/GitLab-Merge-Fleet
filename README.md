@@ -147,6 +147,55 @@ npm run lint
 - Follow the modular service architecture for new features
 - Use dependency injection for testable, extensible code
 
+## Testing
+
+GitLab Merge Fleet includes a comprehensive test suite covering unit tests, component tests, and end-to-end tests.
+
+### Quick Test Commands
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run tests in watch mode (development)
+npm run test:watch
+
+# Run E2E tests
+npm run test:e2e
+
+# Run tests with UI
+npm run test:ui
+```
+
+### Testing Stack
+
+- **Vitest**: Fast unit test runner with watch mode and coverage
+- **Playwright**: End-to-end testing with real browser automation
+- **Vue Test Utils**: Official testing utilities for Vue components
+- **Coverage**: 70%+ coverage threshold for all code
+
+### Coverage Requirements
+
+The project maintains minimum coverage thresholds:
+- Statements: 70%
+- Branches: 70%
+- Functions: 70%
+- Lines: 70%
+
+### Detailed Testing Guide
+
+For comprehensive testing documentation including:
+- Writing unit tests for services and utilities
+- Testing Vue components with Vuetify
+- End-to-end testing with Playwright
+- Best practices and troubleshooting
+- CI/CD integration
+
+See **[TESTING.md](./TESTING.md)** for complete details.
+
 ## Features in Detail
 
 ### Multi-Repository Dashboard

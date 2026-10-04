@@ -1,0 +1,21 @@
+# Playwright test artifacts
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Screenshots and videos
+*.png
+*.webm
+
+# Authentication state
+.auth/
+auth.json
+storage-state.json
+
+# Traces
+trace.zip
+*.trace
+
+# Coverage
+coverage/
+.nyc_output/
