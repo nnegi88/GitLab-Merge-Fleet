@@ -91,9 +91,10 @@ When contributing code, you must:
    - Add test cases for edge cases and bug fixes
 
 3. **Meet coverage requirements**
-   - Maintain 70%+ overall coverage
-   - Services and utilities should have 80%+ coverage
-   - Components should have 70%+ coverage
+   - Services, utilities, API clients, stores and hooks: 80%+
+   - Components: 70%+
+   - 70%+ overall
+   - Pages and app bootstrap don't count toward unit coverage (see [TESTING.md](TESTING.md#coverage-requirements))
 
 4. **Run all tests locally before submitting PR**
    ```bash
