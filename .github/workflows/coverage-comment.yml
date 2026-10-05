@@ -28,9 +28,35 @@ jobs:
       - name: Run tests with coverage
         run: npm run test:coverage
 
+      # Coverage on the PR's base, so the comment can show how the PR changed it
+      - name: Checkout base branch
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - name: Run base coverage
+        if: always()
+        # A broken base shouldn't fail this check; the comment just loses the comparison
+        continue-on-error: true
+        working-directory: base
+        run: |
+          npm ci --legacy-peer-deps
+          npm run test:coverage
+
+      - name: Find base coverage summary
+        id: base
+        if: always()
+        run: |
+          if [ -f base/coverage/coverage-summary.json ]; then
+            echo "summary=./base/coverage/coverage-summary.json" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Report Coverage
         uses: davelosert/vitest-coverage-report-action@v2
         if: always()
         with:
           json-summary-path: ./coverage/coverage-summary.json
           json-final-path: ./coverage/coverage-final.json
+          json-summary-compare-path: ${{ steps.base.outputs.summary }}

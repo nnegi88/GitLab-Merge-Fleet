@@ -91,9 +91,7 @@ When contributing code, you must:
    - Add test cases for edge cases and bug fixes
 
 3. **Meet coverage requirements**
-   - Services, utilities, API clients, stores and hooks: 80%+
-   - Components: 70%+
-   - 70%+ overall
+   - 90%+ overall and in every area (services, utilities, API clients, stores, hooks, components)
    - Pages and app bootstrap don't count toward unit coverage (see [TESTING.md](TESTING.md#coverage-requirements))
 
 4. **Run all tests locally before submitting PR**
@@ -142,14 +140,14 @@ npm run test:coverage
 - Create unit tests in `tests/unit/`
 - Test all public methods and edge cases
 - Mock external dependencies (API calls, localStorage)
-- Aim for 80%+ coverage
+- Keep coverage at 90%+
 
 **For Vue components:**
 - Create component tests in `tests/component/`
 - Test rendering, props, events, and user interactions
 - Use `data-testid` attributes for reliable element selection
 - Mock Vuetify, Router, and Pinia when needed
-- Aim for 70%+ coverage
+- Keep coverage at 90%+
 
 **For user workflows:**
 - Create E2E tests in `tests/e2e/`
