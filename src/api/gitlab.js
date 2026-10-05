@@ -99,8 +99,9 @@ class GitLabAPI {
   }
 
   // User endpoints
-  async getCurrentUser() {
-    const response = await this.getClient().get('/user')
+  async getCurrentUser(options = {}) {
+    const headers = options.propagate401 ? { 'X-Propagate-401': 'true' } : {}
+    const response = await this.getClient().get('/user', { headers })
     return response.data
   }
 
@@ -374,7 +375,9 @@ class GitLabAPI {
   // Test connection
   async testConnection() {
     try {
-      await this.getCurrentUser()
+      // Let a 401 reach the caller: the setup form reports an invalid token
+      // instead of the interceptor clearing it and reloading the page
+      await this.getCurrentUser({ propagate401: true })
       return { success: true }
     } catch (error) {
       return { 

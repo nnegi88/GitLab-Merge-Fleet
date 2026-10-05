@@ -203,10 +203,8 @@ test.describe('Setup/Authentication Flow', () => {
       await route.fulfill({
         status: 401,
         contentType: 'application/json',
-        body: JSON.stringify({
-          error: 'Unauthorized',
-          error_description: '401 Unauthorized'
-        })
+        // GitLab's API returns its error text in `message`
+        body: JSON.stringify({ message: '401 Unauthorized' })
       })
     })
 
