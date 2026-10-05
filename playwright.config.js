@@ -65,10 +65,12 @@ export default defineConfig({
     // },
   ],
 
-  // Run local dev server before starting tests
+  // Test a production build. The dev server compiles each lazy-loaded route on
+  // its first visit, which stalled first visits for 30s+ in CI; a built app
+  // serves everything precompiled, as users get it.
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:4000',
+    command: 'npm run build && npx vite preview --port 4000 --strictPort',
+    url: 'http://localhost:4000/GitLab-Merge-Fleet/',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },

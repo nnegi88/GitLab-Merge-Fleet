@@ -485,7 +485,7 @@ const wrapper = mount(Component, {
 **Solution**:
 1. Increase timeout in test: `test.setTimeout(60000)`
 2. Use proper wait conditions: `await page.waitForSelector('[data-testid="element"]')`
-3. Check dev server is running: `npm run dev`
+3. E2E tests run against a production build (`npm run build && npx vite preview --port 4000`), which Playwright starts itself. Locally, a server already running on port 4000 (for example `npm run dev`) is reused instead, so stop it to test the build.
 
 #### Coverage Threshold Failures
 
