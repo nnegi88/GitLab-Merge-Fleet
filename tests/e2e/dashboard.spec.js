@@ -117,13 +117,9 @@ test.describe('Dashboard and MR Listing', () => {
   test('should redirect to setup when not authenticated', async ({ page }) => {
     await page.goto('/#/')
 
-    // Verify we see the "Not Connected" card
-    await expect(page.locator('text=Not Connected')).toBeVisible()
-    await expect(page.locator('text=Please connect to GitLab first.')).toBeVisible()
-
-    // Verify there's a button to connect
-    const connectButton = page.locator('button:has-text("Connect to GitLab")')
-    await expect(connectButton).toBeVisible()
+    // App.vue redirects to the setup page on mount when there is no token
+    await page.waitForURL(/#\/setup$/)
+    await expect(page.getByRole('button', { name: 'Connect to GitLab' })).toBeVisible()
   })
 
   test('should display dashboard with merge requests', async ({ page }) => {
@@ -143,10 +139,10 @@ test.describe('Dashboard and MR Listing', () => {
     // Verify page title
     await expect(page.locator('h1:has-text("Merge Requests")')).toBeVisible()
 
-    // Verify action buttons are present
-    await expect(page.locator('button:has-text("Bulk Create Branches")')).toBeVisible()
-    await expect(page.locator('button:has-text("Bulk Create MRs")')).toBeVisible()
-    await expect(page.locator('button:has-text("Repository Review")')).toBeVisible()
+    // Verify action buttons are present (v-btn with `to` renders as a link)
+    await expect(page.getByRole('link', { name: 'Bulk Create Branches' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Bulk Create MRs' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Repository Review' })).toBeVisible()
     await expect(page.locator('button:has-text("Refresh")')).toBeVisible()
 
     // Wait for merge requests to load
@@ -214,8 +210,8 @@ test.describe('Dashboard and MR Listing', () => {
     await expect(page.locator('text=5').first()).toBeVisible()
 
     // Verify labels
-    await expect(page.locator('text=feature')).toBeVisible()
-    await expect(page.locator('text=enhancement')).toBeVisible()
+    await expect(page.getByText('feature', { exact: true })).toBeVisible()
+    await expect(page.getByText('enhancement', { exact: true })).toBeVisible()
 
     // Verify approval status
     await expect(page.locator('text=1/2 approvals')).toBeVisible()
@@ -270,8 +266,8 @@ test.describe('Dashboard and MR Listing', () => {
     await mrCard.click()
 
     // Verify navigation to MR details page
-    await page.waitForURL('/#/mr/100/10')
-    await expect(page).toHaveURL('/#/mr/100/10')
+    // The app is served under /GitLab-Merge-Fleet/, so match the hash route only
+    await page.waitForURL(/#\/mr\/100\/10$/)
   })
 
   test('should open external link in new tab', async ({ page }) => {
@@ -333,7 +329,8 @@ test.describe('Dashboard and MR Listing', () => {
     await page.goto('/#/')
 
     // Verify loading spinner is visible
-    await expect(page.locator('.v-progress-circular')).toBeVisible()
+    // Both the Refresh button and the list show a spinner while loading
+    await expect(page.locator('.v-progress-circular').first()).toBeVisible()
 
     // Wait for data to load
     await expect(page.locator('text=Add new feature')).toBeVisible({ timeout: 5000 })
@@ -356,7 +353,8 @@ test.describe('Dashboard and MR Listing', () => {
     await page.goto('/#/')
 
     // Wait for error message
-    await expect(page.locator('text=Error loading merge requests')).toBeVisible()
+    // The query retries 3 times with backoff (~7s) before reporting the error
+    await expect(page.getByText('Error loading merge requests')).toBeVisible({ timeout: 15000 })
 
     // Verify "Try Again" button is present
     const tryAgainButton = page.locator('button:has-text("Try Again")')
@@ -447,7 +445,8 @@ test.describe('Dashboard and MR Listing', () => {
 
     // Verify advanced filters are visible
     await expect(page.locator('input[placeholder*="comma separated"]')).toBeVisible()
-    await expect(page.locator('input[label="Author"]').or(page.locator('label:has-text("Author")'))).toBeVisible()
+    // Vuetify renders each label twice, so find the input inside its text field
+    await expect(page.locator('.v-text-field').filter({ hasText: 'Author' }).locator('input')).toBeVisible()
 
     // Click to collapse
     await advancedButton.click()
@@ -553,33 +552,30 @@ test.describe('Dashboard and MR Listing', () => {
     await expect(page.locator('h1:has-text("Merge Requests")')).toBeVisible()
 
     // Test navigation to Bulk Create Branches
-    const bulkBranchButton = page.locator('button:has-text("Bulk Create Branches")')
+    const bulkBranchButton = page.getByRole('link', { name: 'Bulk Create Branches' })
     await expect(bulkBranchButton).toBeVisible()
     await bulkBranchButton.click()
-    await page.waitForURL('/#/bulk-branch')
-    await expect(page).toHaveURL('/#/bulk-branch')
+    await page.waitForURL(/#\/bulk-branch$/)
 
     // Go back to dashboard
     await page.goto('/#/')
     await expect(page.locator('h1:has-text("Merge Requests")')).toBeVisible()
 
     // Test navigation to Bulk Create MRs
-    const bulkMRButton = page.locator('button:has-text("Bulk Create MRs")')
+    const bulkMRButton = page.getByRole('link', { name: 'Bulk Create MRs' })
     await expect(bulkMRButton).toBeVisible()
     await bulkMRButton.click()
-    await page.waitForURL('/#/bulk-create')
-    await expect(page).toHaveURL('/#/bulk-create')
+    await page.waitForURL(/#\/bulk-create$/)
 
     // Go back to dashboard
     await page.goto('/#/')
     await expect(page.locator('h1:has-text("Merge Requests")')).toBeVisible()
 
     // Test navigation to Repository Review
-    const repoReviewButton = page.locator('button:has-text("Repository Review")')
+    const repoReviewButton = page.getByRole('link', { name: 'Repository Review' })
     await expect(repoReviewButton).toBeVisible()
     await repoReviewButton.click()
-    await page.waitForURL('/#/repository-review')
-    await expect(page).toHaveURL('/#/repository-review')
+    await page.waitForURL(/#\/repository-review$/)
   })
 
   test('should display welcome guidance for new users', async ({ page }) => {
@@ -600,9 +596,10 @@ test.describe('Dashboard and MR Listing', () => {
     await expect(page.locator('text=Welcome to GitLab Merge Fleet!')).toBeVisible()
 
     // Verify guidance content
-    await expect(page.locator('text=Bulk Create Branches')).toBeVisible()
-    await expect(page.locator('text=Bulk Create MRs')).toBeVisible()
-    await expect(page.locator('text=AI Repository Review')).toBeVisible()
+    // The bold item names also appear on the action buttons, so match them exactly
+    await expect(page.getByText('Bulk Create Branches:', { exact: true })).toBeVisible()
+    await expect(page.getByText('Bulk Create MRs:', { exact: true })).toBeVisible()
+    await expect(page.getByText('AI Repository Review:', { exact: true })).toBeVisible()
   })
 
   test('should display approval status correctly', async ({ page }) => {
