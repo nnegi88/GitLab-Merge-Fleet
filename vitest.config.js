@@ -58,6 +58,9 @@ export default defineConfig({
       provider: 'v8',
       reportOnFailure: true,
       reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
+      // Count every source file, not just the ones a test imports, so an untested
+      // file still drags the percentage down (Vitest 4 dropped `coverage.all`).
+      include: ['src/**/*.{js,vue}'],
       exclude: [
         'node_modules',
         'dist',
