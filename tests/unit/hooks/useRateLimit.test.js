@@ -501,7 +501,7 @@ describe('useRateLimit', () => {
 
   describe('reactivity', () => {
     it('should maintain reactivity across multiple updates', () => {
-      const { rateLimitInfo, rateLimitPercentage, updateRateLimitInfo } = useRateLimit()
+      const { rateLimitPercentage, updateRateLimitInfo } = useRateLimit()
 
       gitlabAPI.getRateLimitInfo.mockReturnValue({
         limit: 100,

@@ -451,9 +451,6 @@ async function triggerAIReview() {
       }).join('\n\n')
     }
 
-    console.log('Diff content length:', diffContent.length)
-    console.log('First 500 chars:', diffContent.substring(0, 500))
-
     const review = await geminiAPI.reviewMergeRequest(mergeRequest.value, diffContent)
     aiReview.value = review
   } catch (error) {

@@ -1,20 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mountWithPlugins } from '../utils/testHelpers.js'
 import MergeRequestList from '../../src/components/MergeRequestList.vue'
 
 // Mock the dateUtils module
 vi.mock('../../src/utils/dateUtils.js', () => ({
-  formatDistanceToNow: vi.fn((dateString) => '2 hours ago')
+  formatDistanceToNow: vi.fn(() => '2 hours ago')
 }))
 
 describe('MergeRequestList.vue', () => {
-  let mockRouter
-
-  beforeEach(() => {
-    // Create a fresh router for each test
-    mockRouter = null
-  })
-
   describe('Empty State', () => {
     it('should render empty state when no merge requests', () => {
       const wrapper = mountWithPlugins(MergeRequestList, {

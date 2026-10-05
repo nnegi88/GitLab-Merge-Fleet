@@ -379,9 +379,7 @@ test.describe('Dashboard and MR Listing', () => {
   test('should filter MRs using search', async ({ page }) => {
     await loginViaSetup(page, { user: mockUser })
 
-    let requestCount = 0
     await page.route('**/api/v4/merge_requests**', async route => {
-      requestCount++
       const url = route.request().url()
 
       // Check if search query is present

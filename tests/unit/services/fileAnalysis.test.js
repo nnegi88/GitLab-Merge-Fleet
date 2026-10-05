@@ -1,5 +1,5 @@
 import { FileAnalysisService } from '../../../src/services/fileAnalysis.js'
-import { vi, describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 
 describe('FileAnalysisService', () => {
   let fileAnalysis

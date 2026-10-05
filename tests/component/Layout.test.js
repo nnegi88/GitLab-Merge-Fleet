@@ -6,12 +6,10 @@ import { useAuthStore } from '../../src/stores/authStore'
 describe('Layout.vue', () => {
   let wrapper
   let authStore
-  let mockRouter
 
   beforeEach(() => {
     wrapper = null
     authStore = null
-    mockRouter = null
   })
 
   describe('Initial Rendering', () => {
