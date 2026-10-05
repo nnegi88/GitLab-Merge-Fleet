@@ -1,0 +1,21 @@
+# Routine updates. Security fixes come separately from Dependabot security updates
+# (repo setting), which open a PR whenever a new alert fires.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Minor and patch bumps land as one PR a week; each major gets its own PR
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      github-actions:
+        patterns: ['*']

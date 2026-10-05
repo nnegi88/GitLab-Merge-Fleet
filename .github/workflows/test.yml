@@ -32,6 +32,12 @@ jobs:
       - name: Run lint
         run: npm run lint
 
+      # Only what ships to users: dev-only findings (e.g. Tailwind's unpatched braces)
+      # would keep this red forever. Dependabot covers the dev tree.
+      - name: Audit runtime dependencies
+        if: always()
+        run: npm audit --omit=dev --audit-level=high
+
   test:
     runs-on: ubuntu-latest
     # A healthy run (unit, component, E2E in two browsers, coverage) takes

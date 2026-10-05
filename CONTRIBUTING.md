@@ -219,6 +219,12 @@ In addition to automated tests, please verify:
 - Be responsive to review feedback
 - Meet coverage thresholds (checked automatically in CI)
 
+### Dependency Updates
+- Dependabot opens a PR for every new security alert, plus one grouped minor/patch PR a week (`.github/dependabot.yml`). Each major version gets its own PR.
+- These PRs are merged by hand once the Test Suite (including E2E) is green. Claude Code Review and the coverage comment are skipped for them.
+- CI fails if a runtime dependency has a high or critical advisory (`npm audit --omit=dev --audit-level=high`). Dev-only advisories are left to Dependabot.
+- An alert that can't be fixed is dismissed in the Dependabot UI with a written reason, never left open.
+
 ## Feature Requests & Bug Reports
 
 ### Feature Requests
