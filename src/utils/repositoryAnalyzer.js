@@ -85,6 +85,9 @@ export class RepositoryAnalyzer {
         analysis: this.fileAnalysis.analyzeFileStructure(fileContents)
       }
     } catch (error) {
+      // axios reports an abort as CanceledError; surface every cancel as the signal's AbortError
+      if (signal?.aborted) throw signal.reason
+
       console.error('Repository analysis failed:', error)
       throw error
     }
@@ -121,6 +124,9 @@ export class RepositoryAnalyzer {
       }
 
       const batchResults = await gitlabAPI.getFileContentBatch(projectId, batch, ref, config)
+
+      // getFileContentBatch reports an abort as per-file failures, so check the signal ourselves
+      if (signal?.aborted) throw signal.reason
 
       // Combine file metadata with content
       batchResults.forEach(result => {
