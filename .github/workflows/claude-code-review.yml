@@ -12,6 +12,9 @@ on:
 
 jobs:
   claude-review:
+    # Dependabot PRs can't read Actions secrets, and the Test Suite is the gate for a
+    # dependency bump, so don't review them
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
     # Optional: Filter by PR author
     # if: |
     #   github.event.pull_request.user.login == 'external-contributor' ||

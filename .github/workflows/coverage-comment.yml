@@ -15,7 +15,10 @@ jobs:
     steps:
       # Coverage on the PR's base first, so the comment can show how the PR changed it.
       # Run at the workspace root: nested in a subfolder, Vitest resolves paths against the outer checkout.
+      # Dependabot PRs get a read-only token, so the comment can't be posted; skip the
+      # base run that only feeds it and the comment itself, but still enforce thresholds
       - name: Checkout base branch
+        if: github.event.pull_request.user.login != 'dependabot[bot]'
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.base.sha }}
@@ -28,6 +31,7 @@ jobs:
 
       - name: Run base coverage
         id: base-coverage
+        if: github.event.pull_request.user.login != 'dependabot[bot]'
         # A broken base shouldn't fail this check; the comment just loses the comparison
         continue-on-error: true
         run: |
@@ -53,7 +57,7 @@ jobs:
 
       - name: Report Coverage
         uses: davelosert/vitest-coverage-report-action@v2
-        if: always()
+        if: always() && github.event.pull_request.user.login != 'dependabot[bot]'
         with:
           json-summary-path: ./coverage/coverage-summary.json
           json-final-path: ./coverage/coverage-final.json
