@@ -1,43 +1,20 @@
-import RouteLoading from '../components/RouteLoading.vue'
-import RouteError from '../components/RouteError.vue'
-
-// Default timing configuration for lazy-loaded routes
-const DEFAULT_ROUTE_CONFIG = {
-  // Delay before showing loading component (prevents flash for fast loads)
-  delay: 200,
-  // Timeout before showing error component (adjust based on typical network conditions)
-  timeout: 30000
-}
-
 /**
- * Creates a lazy-loaded route configuration with loading and error states
+ * Creates a lazy-loaded route component, so each page is split into its own chunk
  * @param {string} componentPath - Path to the component relative to src/ directory
- * @param {Object} options - Optional configuration overrides
- * @param {number} options.delay - Milliseconds before showing loading component
- * @param {number} options.timeout - Milliseconds before showing error component
- * @returns {Object} Route configuration object for Vue Router
- * 
+ * @returns {Object} Route config to spread into a Vue Router route record
+ *
+ * To add a page: add it to componentMap below, then add a route in main.js
+ * that spreads lazyLoadRoute('pages/YourPage.vue').
+ *
  * @example
- * // Basic usage in route definition
  * {
  *   path: '/dashboard',
  *   name: 'dashboard',
  *   meta: { title: 'Dashboard' },
  *   ...lazyLoadRoute('pages/Dashboard.vue')
  * }
- * 
- * @example
- * // With custom timing options
- * {
- *   path: '/heavy-page',
- *   name: 'heavy',
- *   meta: { title: 'Heavy Page' },
- *   ...lazyLoadRoute('pages/HeavyPage.vue', { delay: 500, timeout: 60000 })
- * }
  */
-export const lazyLoadRoute = (componentPath, options = {}) => {
-  const config = { ...DEFAULT_ROUTE_CONFIG, ...options }
-  
+export const lazyLoadRoute = (componentPath) => {
   // Create a map of known routes to avoid dynamic string interpolation
   // This satisfies Vite's requirement for static imports
   const componentMap = {
@@ -51,20 +28,13 @@ export const lazyLoadRoute = (componentPath, options = {}) => {
     'pages/RepositoryReviewResults.vue': () => import('../pages/RepositoryReviewResults.vue'),
     'pages/NotFound.vue': () => import('../pages/NotFound.vue')
   }
-  
+
   if (!componentMap[componentPath]) {
     console.error(`Component path '${componentPath}' not found in component map`)
     throw new Error(`Unknown component path: ${componentPath}`)
   }
-  
+
   return {
-    component: componentMap[componentPath],
-    loadingComponent: RouteLoading,
-    errorComponent: RouteError,
-    delay: config.delay,
-    timeout: config.timeout
+    component: componentMap[componentPath]
   }
 }
-
-// Export default config for reference and potential runtime adjustments
-export { DEFAULT_ROUTE_CONFIG }

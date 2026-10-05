@@ -76,7 +76,7 @@ const router = createRouter({
 const pinia = createPinia()
 
 // Global error handler for chunk loading failures - logs and captures to Sentry
-// The route-specific errorComponent handles user-facing error display
+// The user-facing message comes from the global error banner (see the unhandledrejection handler below)
 router.onError((error) => {
   if (error.message?.includes('Failed to fetch dynamically imported module')) {
     console.error('Router chunk loading error:', error)
@@ -90,15 +90,11 @@ router.onError((error) => {
         }
       })
     }
-
-    // The errorComponent defined in lazyLoadRoute will handle the UI
-    // This just ensures the error is logged for debugging
   }
 })
 
 // Global handler for unhandled chunk loading errors
 // Shows non-intrusive banner for any unhandled chunk load rejection
-// The RouteError component handles route-specific errors, this is for edge cases
 window.addEventListener('unhandledrejection', (event) => {
   if (event.reason?.message?.includes('Failed to fetch dynamically imported module') ||
       event.reason?.message?.includes('ChunkLoadError')) {
@@ -116,7 +112,6 @@ window.addEventListener('unhandledrejection', (event) => {
     event.preventDefault() // Prevent default browser error logging
 
     // Always show the non-intrusive banner for unhandled chunk errors
-    // This complements the RouteError component and handles edge cases
     if (window.showGlobalError) {
       window.showGlobalError()
     } else {
