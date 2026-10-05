@@ -9,7 +9,7 @@ updates:
     open-pull-requests-limit: 5
     ignore:
       # Tailwind v4 is a CSS migration, not a version bump; it'll be its own effort.
-      # Security updates are not affected by ignore rules.
+      # Only majors are ignored, so 3.x fixes still come through.
       - dependency-name: tailwindcss
         update-types: ['version-update:semver-major']
     groups:
