@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { loginViaSetup } from './helpers/auth.js'
 
 /**
  * E2E Tests for Bulk Operations
@@ -67,35 +68,6 @@ test.describe('Bulk Operations', () => {
     target_branch: 'main'
   }
 
-  // Helper to setup authenticated state
-  async function setupAuthenticatedState(page) {
-    await page.goto('/')
-
-    // Set up localStorage with auth data
-    await page.evaluate(({ gitlabUrl, encryptedToken }) => {
-      localStorage.setItem('auth-storage', JSON.stringify({
-        gitlabUrl,
-        encryptedToken,
-        sessionOnly: false
-      }))
-    }, {
-      gitlabUrl: 'https://gitlab.example.com',
-      encryptedToken: {
-        encrypted: 'encrypted-token-data',
-        key: 'key-data',
-        iv: 'iv-data'
-      }
-    })
-
-    // Mock the GitLab API user endpoint
-    await page.route('**/api/v4/user', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(mockUser)
-      })
-    })
-  }
 
   test.beforeEach(async ({ page }) => {
     // Clear localStorage before each test
@@ -104,7 +76,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should display bulk create page with empty form', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock projects API
     await page.route('**/api/v4/projects**', async route => {
@@ -144,7 +116,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should load and display projects', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock projects API
     await page.route('**/api/v4/projects**', async route => {
@@ -168,7 +140,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should display loading state while fetching projects', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock slow projects API
     await page.route('**/api/v4/projects**', async route => {
@@ -191,7 +163,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should display error state when projects fail to load', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock failed projects API
     await page.route('**/api/v4/projects**', async route => {
@@ -212,7 +184,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should allow selecting and deselecting repositories', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock projects API
     await page.route('**/api/v4/projects**', async route => {
@@ -253,7 +225,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should filter repositories using search', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock projects API
     await page.route('**/api/v4/projects**', async route => {
@@ -287,7 +259,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should enable create button when form is valid', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock projects API
     await page.route('**/api/v4/projects**', async route => {
@@ -328,7 +300,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should display validation warning when branches are specified', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock projects API
     await page.route('**/api/v4/projects**', async route => {
@@ -359,7 +331,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should update create button text based on selected count', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock projects API
     await page.route('**/api/v4/projects**', async route => {
@@ -396,7 +368,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should successfully create bulk merge requests', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock projects API
     await page.route('**/api/v4/projects**', async route => {
@@ -480,7 +452,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should display progress with pending status during creation', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock projects API
     await page.route('**/api/v4/projects**', async route => {
@@ -539,7 +511,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should handle errors when branch does not exist', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock projects API
     await page.route('**/api/v4/projects**', async route => {
@@ -583,7 +555,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should handle API errors during MR creation', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock projects API
     await page.route('**/api/v4/projects**', async route => {
@@ -634,7 +606,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should show mixed results with both successes and failures', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock projects API
     await page.route('**/api/v4/projects**', async route => {
@@ -700,7 +672,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should prevent closing progress modal while creating', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock projects API
     await page.route('**/api/v4/projects**', async route => {
@@ -747,7 +719,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should close progress modal and navigate to dashboard on done', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock projects API
     await page.route('**/api/v4/projects**', async route => {
@@ -809,7 +781,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should cancel and navigate back to dashboard', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock projects API
     await page.route('**/api/v4/projects**', async route => {
@@ -844,7 +816,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should have default values for form fields', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock projects API
     await page.route('**/api/v4/projects**', async route => {
@@ -870,7 +842,7 @@ test.describe('Bulk Operations', () => {
   })
 
   test('should allow toggling delete source branch option', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock projects API
     await page.route('**/api/v4/projects**', async route => {
