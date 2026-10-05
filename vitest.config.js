@@ -75,19 +75,20 @@ export default defineConfig({
         'src/plugins/**',
         'server.cjs'
       ],
-      // 70% overall (every counted file, including those under the globs below),
-      // 80% for logic-heavy areas and 70% for components
+      // 90% overall and for every area, on all four metrics. The overall figure counts
+      // every file, so the per-area globs stop one area's drop hiding in the average.
+      // Raise these deliberately; lower one only with a reason in the PR (see TESTING.md).
       thresholds: {
-        statements: 70,
-        branches: 70,
-        functions: 70,
-        lines: 70,
-        'src/services/**': { statements: 80, branches: 80, functions: 80, lines: 80 },
-        'src/utils/**': { statements: 80, branches: 80, functions: 80, lines: 80 },
-        'src/api/**': { statements: 80, branches: 80, functions: 80, lines: 80 },
-        'src/stores/**': { statements: 80, branches: 80, functions: 80, lines: 80 },
-        'src/hooks/**': { statements: 80, branches: 80, functions: 80, lines: 80 },
-        'src/components/**': { statements: 70, branches: 70, functions: 70, lines: 70 }
+        statements: 90,
+        branches: 90,
+        functions: 90,
+        lines: 90,
+        'src/services/**': { statements: 90, branches: 90, functions: 90, lines: 90 },
+        'src/utils/**': { statements: 90, branches: 90, functions: 90, lines: 90 },
+        'src/api/**': { statements: 90, branches: 90, functions: 90, lines: 90 },
+        'src/stores/**': { statements: 90, branches: 90, functions: 90, lines: 90 },
+        'src/hooks/**': { statements: 90, branches: 90, functions: 90, lines: 90 },
+        'src/components/**': { statements: 90, branches: 90, functions: 90, lines: 90 }
       }
     },
 

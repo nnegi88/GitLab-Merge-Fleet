@@ -179,7 +179,7 @@ npm run test:ui
 
 ### Coverage Requirements
 
-Unit coverage measures logic: 80% for services, utilities, API clients, stores and hooks; 70% for components; 70% overall. Pages (covered by E2E) and app bootstrap are excluded. See [TESTING.md](TESTING.md#coverage-requirements).
+Unit coverage measures logic, with a 90% threshold overall and in every area. Pages (covered by E2E) and app bootstrap are excluded. See [TESTING.md](TESTING.md#coverage-requirements).
 
 ### Detailed Testing Guide
 

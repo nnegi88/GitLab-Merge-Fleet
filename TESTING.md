@@ -326,13 +326,20 @@ test.describe('Dashboard', () => {
 
 ## Coverage Requirements
 
-`npm run test:coverage` fails if any of these thresholds is missed. Each applies to statements, branches, functions and lines (set in `vitest.config.js`):
+`npm run test:coverage` fails if coverage drops below **90%**. That applies to statements, branches, functions and lines, both overall and separately for each area (`src/services/**`, `src/utils/**`, `src/api/**`, `src/stores/**`, `src/hooks/**`, `src/components/**`), so a drop in one area can't hide in the overall average. The thresholds live in `vitest.config.js`.
 
-| Area | Threshold |
-|------|-----------|
-| `src/services/**`, `src/utils/**`, `src/api/**`, `src/stores/**`, `src/hooks/**` | 80% |
-| `src/components/**` | 70% |
-| Overall (every counted file) | 70% |
+### Changing the Thresholds
+
+Coverage sits well above 90%, so the thresholds catch real slips without failing on small refactors.
+
+- **Raising:** do it deliberately when coverage has stayed comfortably above the threshold. There's no schedule.
+- **Lowering:** only in a PR whose description says why (for example, deleting well-tested code), approved by the reviewer like any other change.
+
+Thresholds are set by hand rather than with Vitest's `autoUpdate`, which writes exact figures like `99.87` back into `vitest.config.js` on every full local run.
+
+### Coverage on Pull Requests
+
+The Coverage Comment check posts each PR's coverage and how it changed against `main`. If coverage can't be computed on `main`, the comment posts without the comparison.
 
 ### What Unit Coverage Measures
 

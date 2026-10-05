@@ -13,14 +13,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      # Coverage on the PR's base first, so the comment can show how the PR changed it.
+      # Run at the workspace root: nested in a subfolder, Vitest resolves paths against the outer checkout.
+      - name: Checkout base branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
+
+      - name: Run base coverage
+        id: base-coverage
+        # A broken base shouldn't fail this check; the comment just loses the comparison
+        continue-on-error: true
+        run: |
+          npm ci --legacy-peer-deps
+          npm run test:coverage
+
+      - name: Keep base coverage summary
+        id: base
+        # Only a clean base run gives a meaningful baseline
+        if: steps.base-coverage.outcome == 'success'
+        run: |
+          cp coverage/coverage-summary.json "$RUNNER_TEMP/base-coverage-summary.json"
+          echo "summary=$RUNNER_TEMP/base-coverage-summary.json" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
@@ -34,3 +57,4 @@ jobs:
         with:
           json-summary-path: ./coverage/coverage-summary.json
           json-final-path: ./coverage/coverage-final.json
+          json-summary-compare-path: ${{ steps.base.outputs.summary }}
