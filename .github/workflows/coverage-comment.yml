@@ -16,9 +16,9 @@ jobs:
       # Coverage on the PR's base first, so the comment can show how the PR changed it.
       # Run at the workspace root: nested in a subfolder, Vitest resolves paths against the outer checkout.
       # Dependabot PRs get a read-only token, so the comment can't be posted; skip the
-      # base run that only feeds it and the comment itself, but still enforce thresholds
+      # base run that only feeds it and the comment itself, but still enforce thresholds.
+      # Always check out the base: Setup Node's npm cache needs its package-lock.json.
       - name: Checkout base branch
-        if: github.event.pull_request.user.login != 'dependabot[bot]'
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.base.sha }}
