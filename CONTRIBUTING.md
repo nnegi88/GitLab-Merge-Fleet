@@ -27,7 +27,7 @@ By participating in this project, you agree to abide by our code of conduct. We 
 ## Development Setup
 
 ### Prerequisites
-- Node.js 18+ and npm 8+
+- Node.js 24.15+ (Node 24 LTS) and npm 8+
 - GitLab instance for testing (can use gitlab.com)
 - GitLab Personal Access Token for development
 
