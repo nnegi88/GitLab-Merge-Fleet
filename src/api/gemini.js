@@ -91,9 +91,7 @@ class GeminiAPI {
     });
 
     if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ error: { message: "Unknown error" } }));
+      const errorData = await response.json().catch(() => ({}));
       throw new Error(
         errorData.error?.message ||
           `HTTP ${response.status}: ${response.statusText}`
@@ -101,9 +99,17 @@ class GeminiAPI {
     }
 
     const data = await response.json();
-    return (
-      data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated"
-    );
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) {
+      // An empty reply parses into empty sections, which reads as a clean review.
+      const blockReason = data.promptFeedback?.blockReason;
+      throw new Error(
+        blockReason
+          ? `Gemini blocked the request: ${blockReason}`
+          : "Gemini returned no content"
+      );
+    }
+    return text;
   }
 
   async reviewMergeRequest(mrData, diffData) {
