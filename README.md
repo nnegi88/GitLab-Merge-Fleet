@@ -27,7 +27,7 @@ A modern, frontend-only GitLab multi-repository merge request management tool wi
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 24.15+ (Node 24 LTS)
 - GitLab Personal Access Token with `api`, `read_repository`, `write_repository` scopes
 - Google Gemini API key (optional, for AI reviews)
 
