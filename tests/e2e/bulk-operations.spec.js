@@ -103,9 +103,12 @@ test.describe('Bulk Operations', () => {
     await expect(page.locator('text=Step 2: Merge Request Details')).toBeVisible()
 
     // Verify form fields
-    await expect(page.getByRole('textbox', { name: 'Source Branch', exact: true })).toBeVisible()
-    await expect(page.getByRole('textbox', { name: 'Target Branch', exact: true })).toBeVisible()
-    await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toBeVisible()
+    // Vuetify renders each label twice (one copy floating), so find the input
+    // inside the text field that carries the label
+    const textField = (label) => page.locator('.v-text-field').filter({ hasText: label }).locator('input')
+    await expect(textField('Source Branch')).toBeVisible()
+    await expect(textField('Target Branch')).toBeVisible()
+    await expect(textField('Title')).toBeVisible()
 
     // Verify Create button is disabled initially
     const createButton = page.locator('button:has-text("Create")')
@@ -441,7 +444,8 @@ test.describe('Bulk Operations', () => {
     await expect(successIcons).toHaveCount(2)
 
     // Verify "View MR" buttons appear
-    const viewMRButtons = page.locator('button:has-text("View MR")')
+    // v-btn with an href renders as a link
+    const viewMRButtons = page.getByRole('link', { name: 'View MR' })
     await expect(viewMRButtons.first()).toBeVisible()
 
     // Verify "Done" button is enabled
