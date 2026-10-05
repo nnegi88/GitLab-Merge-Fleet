@@ -7,6 +7,11 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # Tailwind v4 is a CSS migration, not a version bump; it'll be its own effort.
+      # Security updates are not affected by ignore rules.
+      - dependency-name: tailwindcss
+        update-types: ['version-update:semver-major']
     groups:
       # Minor and patch bumps land as one PR a week; each major gets its own PR
       npm-minor-and-patch:
