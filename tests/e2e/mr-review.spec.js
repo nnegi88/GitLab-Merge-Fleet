@@ -197,8 +197,8 @@ Approve with minor suggestions. Great work!`
 
     await page.goto('/#/mr/100/10')
 
-    // Verify MR title
-    await expect(page.locator('text=Add new authentication feature')).toBeVisible()
+    // Verify MR title (it also renders inside its tooltip, so take the first match)
+    await expect(page.getByText('Add new authentication feature').first()).toBeVisible()
 
     // Verify author
     await expect(page.locator('text=Test User').first()).toBeVisible()
@@ -249,7 +249,7 @@ Approve with minor suggestions. Great work!`
     await expect(page.locator('text=Loading merge request details...')).toBeVisible()
 
     // Wait for content to load
-    await expect(page.locator('text=Add new authentication feature')).toBeVisible({ timeout: 3000 })
+    await expect(page.getByText('Add new authentication feature').first()).toBeVisible({ timeout: 3000 })
   })
 
   test('should display error state when MR fails to load', async ({ page }) => {
@@ -269,13 +269,14 @@ Approve with minor suggestions. Great work!`
 
     await page.goto('/#/mr/100/10')
 
-    // Verify error state
-    await expect(page.locator('.mdi-close-circle')).toBeVisible()
+    // Verify error state. The query retries 3 times with backoff (~7s) before
+    // reporting the error, so allow longer than the default 5s.
+    await expect(page.locator('.mdi-close-circle')).toBeVisible({ timeout: 15000 })
     await expect(page.locator('text=Back to Dashboard')).toBeVisible()
 
-    // Click back to dashboard
+    // Click back to dashboard (the app is served under /GitLab-Merge-Fleet/)
     await page.locator('button:has-text("Back to Dashboard")').click()
-    await expect(page).toHaveURL('/#/')
+    await expect(page).toHaveURL(/#\/$/)
   })
 
   test('should display changes summary with correct stats', async ({ page }) => {
@@ -460,6 +461,8 @@ Approve with minor suggestions. Great work!`
 
     // Mock Gemini API response
     await page.route('**/generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent**', async route => {
+      // Respond after a short delay so the "Analyzing..." state is observable
+      await new Promise(resolve => setTimeout(resolve, 1000))
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -488,11 +491,11 @@ Approve with minor suggestions. Great work!`
     // Verify summary is displayed
     await expect(page.locator('text=Overall good implementation with minor suggestions for improvement.')).toBeVisible()
 
-    // Verify full review is displayed (check for some content)
-    await expect(page.locator('text=Code Quality')).toBeVisible()
-    await expect(page.locator('text=Security Considerations')).toBeVisible()
-    await expect(page.locator('text=Performance')).toBeVisible()
-    await expect(page.locator('text=Suggestions')).toBeVisible()
+    // Verify full review is displayed (section headings; the words also appear in body text)
+    await expect(page.getByRole('heading', { name: 'Code Quality' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Security Considerations' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Performance' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Suggestions' })).toBeVisible()
   })
 
   test('should display AI review loading state', async ({ page }) => {
@@ -753,8 +756,8 @@ Approve with minor suggestions. Great work!`
     await page.locator('button:has-text("Start AI Review")').click()
 
     // Wait for error to be displayed
-    await expect(page.locator('.v-alert--type-error')).toBeVisible({ timeout: 5000 })
-    await expect(page.locator('text=AI Review failed')).toBeVisible()
+    // Vuetify 3 alerts have role="alert" and no type class
+    await expect(page.getByRole('alert').filter({ hasText: 'AI Review failed' })).toBeVisible({ timeout: 5000 })
 
     // Verify "Start AI Review" button is enabled again
     await expect(page.locator('button:has-text("Start AI Review")')).not.toBeDisabled()
@@ -950,6 +953,7 @@ Approve with minor suggestions. Great work!`
     await settingsLink.click()
 
     // Verify navigation to Settings page
-    await expect(page).toHaveURL('/#/settings')
+    // The app is served under /GitLab-Merge-Fleet/, so match the hash route only
+    await expect(page).toHaveURL(/#\/settings$/)
   })
 })
