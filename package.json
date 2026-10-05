@@ -45,7 +45,6 @@
     "eslint": "^8.57.0",
     "eslint-plugin-vue": "^9.26.0",
     "globals": "^16.2.0",
-    "happy-dom": "^13.3.8",
     "jsdom": "^24.0.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
