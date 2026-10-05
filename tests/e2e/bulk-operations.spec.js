@@ -103,9 +103,9 @@ test.describe('Bulk Operations', () => {
     await expect(page.locator('text=Step 2: Merge Request Details')).toBeVisible()
 
     // Verify form fields
-    await expect(page.locator('input[label="Source Branch"]').or(page.locator('label:has-text("Source Branch")'))).toBeVisible()
-    await expect(page.locator('input[label="Target Branch"]').or(page.locator('label:has-text("Target Branch")'))).toBeVisible()
-    await expect(page.locator('input[label="Title"]').or(page.locator('label:has-text("Title")'))).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'Source Branch', exact: true })).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'Target Branch', exact: true })).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toBeVisible()
 
     // Verify Create button is disabled initially
     const createButton = page.locator('button:has-text("Create")')
@@ -178,9 +178,10 @@ test.describe('Bulk Operations', () => {
 
     await page.goto('/#/bulk-create')
 
-    // Verify error message
-    await expect(page.locator('.v-alert--type-error')).toBeVisible()
-    await expect(page.locator('text=Error loading repositories')).toBeVisible()
+    // Verify error message. The query retries 3 times with backoff (~7s) before
+    // reporting the error, so allow longer than the default 5s.
+    const errorAlert = page.getByRole('alert').filter({ hasText: 'Error loading repositories' })
+    await expect(errorAlert).toBeVisible({ timeout: 15000 })
   })
 
   test('should allow selecting and deselecting repositories', async ({ page }) => {
@@ -322,12 +323,12 @@ test.describe('Bulk Operations', () => {
     const sourceBranchInput = page.locator('input[placeholder="feature/new-feature"]')
     await sourceBranchInput.fill('feature/new-feature')
 
-    // Verify validation warning appears
-    await expect(page.locator('.v-alert--type-warning')).toBeVisible()
-    await expect(page.locator('text=Branch Validation')).toBeVisible()
-    await expect(page.locator('text=feature/new-feature')).toBeVisible()
-    await expect(page.locator('text=main')).toBeVisible()
-    await expect(page.locator('text=Repositories without these branches will be skipped')).toBeVisible()
+    // Verify validation warning appears (Vuetify 3 alerts have role="alert", no type class)
+    const warning = page.getByRole('alert').filter({ hasText: 'Branch Validation' })
+    await expect(warning).toBeVisible()
+    await expect(warning.getByText('feature/new-feature', { exact: true })).toBeVisible()
+    await expect(warning.getByText('main', { exact: true })).toBeVisible()
+    await expect(warning.getByText('Repositories without these branches will be skipped')).toBeVisible()
   })
 
   test('should update create button text based on selected count', async ({ page }) => {
@@ -430,7 +431,7 @@ test.describe('Bulk Operations', () => {
     await createButton.click()
 
     // Verify progress modal appears
-    await expect(page.locator('text=Creating Merge Requests')).toBeVisible()
+    await expect(page.getByText('Creating Merge Requests', { exact: true })).toBeVisible()
 
     // Wait for creation to complete
     await expect(page.locator('.mdi-check-circle')).toBeVisible({ timeout: 5000 })
@@ -498,7 +499,7 @@ test.describe('Bulk Operations', () => {
     await page.locator('button:has-text("Create 1 Merge Request")').click()
 
     // Verify progress modal with pending status
-    await expect(page.locator('text=Creating Merge Requests')).toBeVisible()
+    await expect(page.getByText('Creating Merge Requests', { exact: true })).toBeVisible()
     await expect(page.locator('.v-progress-circular').last()).toBeVisible()
 
     // Verify "Creating..." text while in progress
@@ -547,7 +548,7 @@ test.describe('Bulk Operations', () => {
     await page.locator('button:has-text("Create 1 Merge Request")').click()
 
     // Verify progress modal
-    await expect(page.locator('text=Creating Merge Requests')).toBeVisible()
+    await expect(page.getByText('Creating Merge Requests', { exact: true })).toBeVisible()
 
     // Verify error is shown
     await expect(page.locator('.mdi-close-circle')).toBeVisible({ timeout: 3000 })
@@ -776,8 +777,8 @@ test.describe('Bulk Operations', () => {
     await doneButton.click()
 
     // Verify navigation to dashboard
-    await page.waitForURL('/#/')
-    await expect(page).toHaveURL('/#/')
+    // The app is served under /GitLab-Merge-Fleet/, so match the hash route only
+    await page.waitForURL(/#\/$/)
   })
 
   test('should cancel and navigate back to dashboard', async ({ page }) => {
@@ -811,8 +812,8 @@ test.describe('Bulk Operations', () => {
     await cancelButton.click()
 
     // Verify navigation to dashboard
-    await page.waitForURL('/#/')
-    await expect(page).toHaveURL('/#/')
+    // The app is served under /GitLab-Merge-Fleet/, so match the hash route only
+    await page.waitForURL(/#\/$/)
   })
 
   test('should have default values for form fields', async ({ page }) => {
@@ -837,7 +838,7 @@ test.describe('Bulk Operations', () => {
     await expect(targetBranchInput).toHaveValue('main')
 
     // Verify "Delete source branch" checkbox is checked by default
-    const deleteSourceBranchCheckbox = page.locator('input[type="checkbox"]')
+    const deleteSourceBranchCheckbox = page.getByRole('checkbox', { name: /Delete source branch/ })
     await expect(deleteSourceBranchCheckbox).toBeChecked()
   })
 
@@ -859,7 +860,7 @@ test.describe('Bulk Operations', () => {
     await expect(page.locator('text=Bulk Merge Request Creation')).toBeVisible()
 
     // Find the checkbox
-    const deleteSourceBranchCheckbox = page.locator('input[type="checkbox"]')
+    const deleteSourceBranchCheckbox = page.getByRole('checkbox', { name: /Delete source branch/ })
 
     // Verify it's checked by default
     await expect(deleteSourceBranchCheckbox).toBeChecked()
