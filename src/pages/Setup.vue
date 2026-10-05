@@ -51,7 +51,8 @@
             </div>
 
             <v-checkbox
-              v-model="authStore.sessionOnly"
+              :model-value="authStore.sessionOnly"
+              @update:model-value="authStore.setSessionOnly"
               label="Session only (don't persist token after browser close)"
               color="primary"
               hide-details
@@ -124,6 +125,9 @@ const handleSubmit = async () => {
   success.value = false
 
   try {
+    // Normalise the URL (drops a trailing slash) before it is used or persisted
+    authStore.setGitlabUrl(authStore.gitlabUrl)
+
     // Set the token temporarily for testing
     await authStore.setToken(token.value)
     
