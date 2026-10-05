@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { loginViaSetup } from './helpers/auth.js'
 
 /**
  * E2E Tests for Dashboard and MR Listing
@@ -106,35 +107,6 @@ test.describe('Dashboard and MR Listing', () => {
     }
   ]
 
-  // Helper to setup authenticated state
-  async function setupAuthenticatedState(page) {
-    await page.goto('/')
-
-    // Set up localStorage with auth data
-    await page.evaluate(({ gitlabUrl, encryptedToken, user }) => {
-      localStorage.setItem('auth-storage', JSON.stringify({
-        gitlabUrl,
-        encryptedToken,
-        sessionOnly: false
-      }))
-    }, {
-      gitlabUrl: 'https://gitlab.example.com',
-      encryptedToken: {
-        encrypted: 'encrypted-token-data',
-        key: 'key-data',
-        iv: 'iv-data'
-      }
-    })
-
-    // Mock the GitLab API user endpoint
-    await page.route('**/api/v4/user', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(mockUser)
-      })
-    })
-  }
 
   test.beforeEach(async ({ page }) => {
     // Clear localStorage before each test
@@ -155,7 +127,7 @@ test.describe('Dashboard and MR Listing', () => {
   })
 
   test('should display dashboard with merge requests', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock the merge requests API
     await page.route('**/api/v4/merge_requests**', async route => {
@@ -184,7 +156,7 @@ test.describe('Dashboard and MR Listing', () => {
   })
 
   test('should display correct statistics', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     await page.route('**/api/v4/merge_requests**', async route => {
       await route.fulfill({
@@ -214,7 +186,7 @@ test.describe('Dashboard and MR Listing', () => {
   })
 
   test('should display MR details correctly', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     await page.route('**/api/v4/merge_requests**', async route => {
       await route.fulfill({
@@ -253,7 +225,7 @@ test.describe('Dashboard and MR Listing', () => {
   })
 
   test('should display draft badge for draft MRs', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     await page.route('**/api/v4/merge_requests**', async route => {
       await route.fulfill({
@@ -278,7 +250,7 @@ test.describe('Dashboard and MR Listing', () => {
   })
 
   test('should navigate to MR details on click', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     await page.route('**/api/v4/merge_requests**', async route => {
       await route.fulfill({
@@ -303,7 +275,7 @@ test.describe('Dashboard and MR Listing', () => {
   })
 
   test('should open external link in new tab', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     await page.route('**/api/v4/merge_requests**', async route => {
       await route.fulfill({
@@ -325,7 +297,7 @@ test.describe('Dashboard and MR Listing', () => {
   })
 
   test('should display empty state when no MRs match filters', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     await page.route('**/api/v4/merge_requests**', async route => {
       await route.fulfill({
@@ -346,7 +318,7 @@ test.describe('Dashboard and MR Listing', () => {
   })
 
   test('should display loading state', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock slow API response
     await page.route('**/api/v4/merge_requests**', async route => {
@@ -368,7 +340,7 @@ test.describe('Dashboard and MR Listing', () => {
   })
 
   test('should display error state and allow retry', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock API error
     await page.route('**/api/v4/merge_requests**', async route => {
@@ -407,7 +379,7 @@ test.describe('Dashboard and MR Listing', () => {
   })
 
   test('should filter MRs using search', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     let requestCount = 0
     await page.route('**/api/v4/merge_requests**', async route => {
@@ -451,7 +423,7 @@ test.describe('Dashboard and MR Listing', () => {
   })
 
   test('should toggle advanced filters', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     await page.route('**/api/v4/merge_requests**', async route => {
       await route.fulfill({
@@ -485,7 +457,7 @@ test.describe('Dashboard and MR Listing', () => {
   })
 
   test('should change filter state', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     await page.route('**/api/v4/merge_requests**', async route => {
       await route.fulfill({
@@ -509,7 +481,7 @@ test.describe('Dashboard and MR Listing', () => {
   })
 
   test('should change filter scope', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     await page.route('**/api/v4/merge_requests**', async route => {
       await route.fulfill({
@@ -533,7 +505,7 @@ test.describe('Dashboard and MR Listing', () => {
   })
 
   test('should refresh merge requests', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     let requestCount = 0
     await page.route('**/api/v4/merge_requests**', async route => {
@@ -565,7 +537,7 @@ test.describe('Dashboard and MR Listing', () => {
   })
 
   test('should navigate to bulk operations', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     await page.route('**/api/v4/merge_requests**', async route => {
       await route.fulfill({
@@ -611,7 +583,7 @@ test.describe('Dashboard and MR Listing', () => {
   })
 
   test('should display welcome guidance for new users', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock empty merge requests for new user
     await page.route('**/api/v4/merge_requests**', async route => {
@@ -634,7 +606,7 @@ test.describe('Dashboard and MR Listing', () => {
   })
 
   test('should display approval status correctly', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     await page.route('**/api/v4/merge_requests**', async route => {
       await route.fulfill({

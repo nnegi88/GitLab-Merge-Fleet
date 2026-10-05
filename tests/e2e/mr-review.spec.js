@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { loginViaSetup } from './helpers/auth.js'
 
 /**
  * E2E Tests for MR Details and AI Review
@@ -159,35 +160,6 @@ Approve with minor suggestions. Great work!`
     ]
   }
 
-  // Helper to setup authenticated state
-  async function setupAuthenticatedState(page) {
-    await page.goto('/')
-
-    // Set up localStorage with auth data
-    await page.evaluate(({ gitlabUrl, encryptedToken }) => {
-      localStorage.setItem('auth-storage', JSON.stringify({
-        gitlabUrl,
-        encryptedToken,
-        sessionOnly: false
-      }))
-    }, {
-      gitlabUrl: 'https://gitlab.example.com',
-      encryptedToken: {
-        encrypted: 'encrypted-token-data',
-        key: 'key-data',
-        iv: 'iv-data'
-      }
-    })
-
-    // Mock the GitLab API user endpoint
-    await page.route('**/api/v4/user', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(mockUser)
-      })
-    })
-  }
 
   test.beforeEach(async ({ page }) => {
     // Clear localStorage before each test
@@ -196,7 +168,7 @@ Approve with minor suggestions. Great work!`
   })
 
   test('should display MR details correctly', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock GitLab API responses
     await page.route('**/api/v4/projects/100/merge_requests/10', async route => {
@@ -249,7 +221,7 @@ Approve with minor suggestions. Great work!`
   })
 
   test('should display loading state while fetching MR details', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock slow API responses
     await page.route('**/api/v4/projects/100/merge_requests/10', async route => {
@@ -281,7 +253,7 @@ Approve with minor suggestions. Great work!`
   })
 
   test('should display error state when MR fails to load', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock failed API response
     await page.route('**/api/v4/projects/100/merge_requests/10', async route => {
@@ -307,7 +279,7 @@ Approve with minor suggestions. Great work!`
   })
 
   test('should display changes summary with correct stats', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock GitLab API responses
     await page.route('**/api/v4/projects/100/merge_requests/10', async route => {
@@ -342,7 +314,7 @@ Approve with minor suggestions. Great work!`
   })
 
   test('should display modified files with correct badges', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock GitLab API responses
     await page.route('**/api/v4/projects/100/merge_requests/10', async route => {
@@ -377,7 +349,7 @@ Approve with minor suggestions. Great work!`
   })
 
   test('should display recent comments', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock GitLab API responses
     await page.route('**/api/v4/projects/100/merge_requests/10', async route => {
@@ -419,7 +391,7 @@ Approve with minor suggestions. Great work!`
   })
 
   test('should show API key warning when Gemini key not configured', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock GitLab API responses
     await page.route('**/api/v4/projects/100/merge_requests/10', async route => {
@@ -453,7 +425,7 @@ Approve with minor suggestions. Great work!`
   })
 
   test('should successfully trigger AI review and display results', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Set Gemini API key in localStorage
     await page.evaluate(() => {
@@ -524,7 +496,7 @@ Approve with minor suggestions. Great work!`
   })
 
   test('should display AI review loading state', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Set Gemini API key
     await page.evaluate(() => {
@@ -575,7 +547,7 @@ Approve with minor suggestions. Great work!`
   })
 
   test('should toggle between rendered and raw markdown view', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Set Gemini API key
     await page.evaluate(() => {
@@ -634,7 +606,7 @@ Approve with minor suggestions. Great work!`
   })
 
   test('should copy review to clipboard', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Set Gemini API key
     await page.evaluate(() => {
@@ -686,7 +658,7 @@ Approve with minor suggestions. Great work!`
   })
 
   test('should clear AI review', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Set Gemini API key
     await page.evaluate(() => {
@@ -738,7 +710,7 @@ Approve with minor suggestions. Great work!`
   })
 
   test('should handle AI review API errors', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Set Gemini API key
     await page.evaluate(() => {
@@ -789,7 +761,7 @@ Approve with minor suggestions. Great work!`
   })
 
   test('should post AI review as comment', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Set Gemini API key
     await page.evaluate(() => {
@@ -875,7 +847,7 @@ Approve with minor suggestions. Great work!`
   })
 
   test('should handle post comment errors', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Set Gemini API key
     await page.evaluate(() => {
@@ -948,7 +920,7 @@ Approve with minor suggestions. Great work!`
   })
 
   test('should navigate to Settings when clicking "Add it in Settings" link', async ({ page }) => {
-    await setupAuthenticatedState(page)
+    await loginViaSetup(page, { user: mockUser })
 
     // Mock GitLab API responses
     await page.route('**/api/v4/projects/100/merge_requests/10', async route => {
