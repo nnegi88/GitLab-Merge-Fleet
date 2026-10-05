@@ -60,6 +60,7 @@ tests/
 ├── setup.js                    # Global test configuration
 ├── unit/                       # Unit tests
 │   ├── api/                    # API client tests
+│   │   ├── gemini.test.js
 │   │   └── gitlab.test.js
 │   ├── services/               # Service layer tests
 │   │   ├── fileAnalysis.test.js
@@ -325,18 +326,22 @@ test.describe('Dashboard', () => {
 
 ## Coverage Requirements
 
-The project maintains the following coverage thresholds:
+`npm run test:coverage` fails if any of these thresholds is missed. Each applies to statements, branches, functions and lines (set in `vitest.config.js`):
 
-- **Statements**: 70%
-- **Branches**: 70%
-- **Functions**: 70%
-- **Lines**: 70%
+| Area | Threshold |
+|------|-----------|
+| `src/services/**`, `src/utils/**`, `src/api/**`, `src/stores/**`, `src/hooks/**` | 80% |
+| `src/components/**` | 70% |
+| Overall (every counted file) | 70% |
 
-### Target Coverage by Layer
+### What Unit Coverage Measures
 
-- **Services & Utilities**: 80%+ coverage (critical business logic)
-- **Components**: 70%+ coverage (UI interactions)
-- **API Clients**: 75%+ coverage (external integrations)
+Unit coverage measures logic. These files are excluded from it:
+
+- **Pages** (`src/pages/**`): covered end to end by the Playwright suite. Page unit tests, such as Dashboard's and Settings', still run; they just don't count toward the percentage.
+- **App bootstrap** (`src/main.js`, `src/App.vue`, `src/plugins/**`, `server.cjs`): wiring with no logic of its own.
+
+E2E runs don't count toward coverage; the E2E suite is its own pass/fail check.
 
 ### Viewing Coverage Reports
 

@@ -175,15 +175,11 @@ npm run test:ui
 - **Vitest**: Fast unit test runner with watch mode and coverage
 - **Playwright**: End-to-end testing with real browser automation
 - **Vue Test Utils**: Official testing utilities for Vue components
-- **Coverage**: 70%+ coverage threshold for all code
+- **Coverage**: per-area thresholds, enforced by `npm run test:coverage`
 
 ### Coverage Requirements
 
-The project maintains minimum coverage thresholds:
-- Statements: 70%
-- Branches: 70%
-- Functions: 70%
-- Lines: 70%
+Unit coverage measures logic: 80% for services, utilities, API clients, stores and hooks; 70% for components; 70% overall. Pages (covered by E2E) and app bootstrap are excluded. See [TESTING.md](TESTING.md#coverage-requirements).
 
 ### Detailed Testing Guide
 

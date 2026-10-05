@@ -66,15 +66,28 @@ export default defineConfig({
         '**/*.config.js',
         '**/mockData/**',
         '**/*.spec.js',
-        '**/*.test.js'
+        '**/*.test.js',
+        // Pages are covered end to end by the Playwright suite, not by unit coverage
+        'src/pages/**',
+        // App bootstrap: wiring with no logic of its own
+        'src/main.js',
+        'src/App.vue',
+        'src/plugins/**',
+        'server.cjs'
       ],
-      // Coverage thresholds aligned with acceptance criteria
-      // 80% for services and utilities, 70% for components
+      // 70% overall (every counted file, including those under the globs below),
+      // 80% for logic-heavy areas and 70% for components
       thresholds: {
         statements: 70,
         branches: 70,
         functions: 70,
-        lines: 70
+        lines: 70,
+        'src/services/**': { statements: 80, branches: 80, functions: 80, lines: 80 },
+        'src/utils/**': { statements: 80, branches: 80, functions: 80, lines: 80 },
+        'src/api/**': { statements: 80, branches: 80, functions: 80, lines: 80 },
+        'src/stores/**': { statements: 80, branches: 80, functions: 80, lines: 80 },
+        'src/hooks/**': { statements: 80, branches: 80, functions: 80, lines: 80 },
+        'src/components/**': { statements: 70, branches: 70, functions: 70, lines: 70 }
       }
     },
 

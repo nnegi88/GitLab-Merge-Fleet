@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { lazyLoadRoute } from '../../../src/utils/router'
 
+// Eager glob compiles to static imports; a template-literal import() would pull
+// Vite's virtual dynamic-import helper into coverage and crash the HTML reporter.
+const pageModules = import.meta.glob('../../../src/pages/*.vue', { eager: true })
+
 const pages = [
   'Dashboard',
   'Setup',
@@ -26,7 +30,7 @@ describe('lazyLoadRoute', () => {
 
   it.each(pages)('lazily loads pages/%s.vue', async (page) => {
     const route = lazyLoadRoute(`pages/${page}.vue`)
-    const expected = await import(`../../../src/pages/${page}.vue`)
+    const expected = pageModules[`../../../src/pages/${page}.vue`]
 
     const loaded = await route.component()
 
