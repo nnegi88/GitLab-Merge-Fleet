@@ -73,7 +73,8 @@ tests/
 │   │   └── useRateLimit.test.js
 │   └── utils/                  # Utility function tests
 │       ├── dateUtils.test.js
-│       └── routeTemplate.test.js
+│       ├── repositoryAnalyzer.test.js
+│       └── router.test.js
 ├── component/                  # Component tests
 │   ├── FilterBar.test.js
 │   ├── GlobalErrorBanner.test.js
