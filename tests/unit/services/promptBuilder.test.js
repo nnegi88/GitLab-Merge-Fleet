@@ -1,5 +1,5 @@
 import { PromptBuilderService } from '../../../src/services/promptBuilder.js'
-import { vi, describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 
 describe('PromptBuilderService', () => {
   let promptBuilder

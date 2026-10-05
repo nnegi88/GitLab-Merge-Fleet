@@ -31,12 +31,29 @@ export default [
       'no-console': ['warn', { allow: ['warn', 'error'] }]
     }
   },
-  // Node.js config for server files
+  // Node.js config for the server and tool config files
   {
-    files: ['server.cjs', 'vite.config.js'],
+    files: ['server.cjs', '*.config.js'],
     languageOptions: {
       globals: {
         ...globals.node
+      }
+    }
+  },
+  // The production server logs requests to stdout
+  {
+    files: ['server.cjs'],
+    rules: {
+      'no-console': 'off'
+    }
+  },
+  // Tests run in Node with Vitest's globals enabled (test.globals in vitest.config.js)
+  {
+    files: ['tests/**'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.vitest
       }
     }
   }

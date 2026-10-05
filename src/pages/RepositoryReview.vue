@@ -647,7 +647,7 @@ const branchItems = computed(() => {
       .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
     
     // Return without scores for v-select
-    return scoredItems.map(({ score, ...item }) => item)
+    return scoredItems.map(({ score: _score, ...item }) => item)
   }
   
   // No search query - apply smart sorting and limiting

@@ -3,7 +3,6 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 
 describe('dateUtils', () => {
   describe('formatDistanceToNow', () => {
-    let originalNow
     const mockNow = new Date('2024-01-15T12:00:00Z')
 
     beforeEach(() => {

@@ -364,7 +364,7 @@ test.describe('Setup/Authentication Flow', () => {
     expect(authData.gitlabUrl).not.toContain('https://gitlab.example.com/')
   })
 
-  test('should allow re-authentication after logout', async ({ page, context }) => {
+  test('should allow re-authentication after logout', async ({ page }) => {
     // First authentication
     await page.goto('/#/setup')
 

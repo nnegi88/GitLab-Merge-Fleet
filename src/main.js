@@ -152,7 +152,7 @@ if (import.meta.env.VITE_SENTRY_DSN) {
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
     // Filter sensitive data before sending to Sentry
-    beforeSend(event, hint) {
+    beforeSend(event) {
       // Filter sensitive headers
       if (event.request?.headers) {
         // Remove GitLab API token
