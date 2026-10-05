@@ -19,12 +19,12 @@ jobs:
       # base run that only feeds it and the comment itself, but still enforce thresholds.
       # Always check out the base: Setup Node's npm cache needs its package-lock.json.
       - name: Checkout base branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: 'npm'
@@ -47,7 +47,7 @@ jobs:
           echo "summary=$RUNNER_TEMP/base-coverage-summary.json" >> "$GITHUB_OUTPUT"
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
