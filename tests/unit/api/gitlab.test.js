@@ -387,8 +387,16 @@ describe('GitLabAPI', () => {
 
       const result = await GitLabAPI.getCurrentUser()
 
-      expect(mockClient.get).toHaveBeenCalledWith('/user')
+      expect(mockClient.get).toHaveBeenCalledWith('/user', { headers: {} })
       expect(result).toEqual(userData)
+    })
+
+    it('should send X-Propagate-401 when propagate401 is set', async () => {
+      mockClient.get.mockResolvedValue({ data: {} })
+
+      await GitLabAPI.getCurrentUser({ propagate401: true })
+
+      expect(mockClient.get).toHaveBeenCalledWith('/user', { headers: { 'X-Propagate-401': 'true' } })
     })
   })
 
@@ -1040,6 +1048,16 @@ describe('GitLabAPI', () => {
       const result = await GitLabAPI.testConnection()
 
       expect(result).toEqual({ success: true })
+    })
+
+    it('should propagate a 401 instead of clearing the token and reloading', async () => {
+      mockClient.get.mockResolvedValue({ data: { id: 1 } })
+
+      await GitLabAPI.testConnection()
+
+      // Without the header, the response interceptor clears the token and
+      // reloads the page, so the setup form could never show "invalid token"
+      expect(mockClient.get).toHaveBeenCalledWith('/user', { headers: { 'X-Propagate-401': 'true' } })
     })
 
     it('should return error when connection fails', async () => {

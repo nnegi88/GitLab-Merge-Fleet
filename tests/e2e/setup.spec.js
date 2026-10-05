@@ -97,10 +97,8 @@ test.describe('Setup/Authentication Flow', () => {
     await expect(page.locator('text=Successfully connected! Redirecting to dashboard...')).toBeVisible()
 
     // Wait for redirect to dashboard
-    await page.waitForURL('/#/', { timeout: 5000 })
-
-    // Verify we're on the dashboard
-    await expect(page).toHaveURL('/#/')
+    // The app is served under /GitLab-Merge-Fleet/, so match the hash route only
+    await page.waitForURL(/#\/$/, { timeout: 5000 })
   })
 
   test('should persist credentials to localStorage', async ({ page }) => {
@@ -205,10 +203,8 @@ test.describe('Setup/Authentication Flow', () => {
       await route.fulfill({
         status: 401,
         contentType: 'application/json',
-        body: JSON.stringify({
-          error: 'Unauthorized',
-          error_description: '401 Unauthorized'
-        })
+        // GitLab's API returns its error text in `message`
+        body: JSON.stringify({ message: '401 Unauthorized' })
       })
     })
 
@@ -223,15 +219,17 @@ test.describe('Setup/Authentication Flow', () => {
     // Submit the form
     await page.locator('button[type="submit"]').click()
 
-    // Wait for error message
-    await expect(page.locator('.v-alert--type-error')).toBeVisible()
+    // Wait for error message. Vuetify 3 alerts have role="alert" and no type
+    // class; the error alert is the one with the alert-circle icon (an info
+    // alert is always shown on this page)
+    const errorAlert = page.getByRole('alert').filter({ has: page.locator('.mdi-alert-circle') })
+    await expect(errorAlert).toBeVisible()
 
     // Verify error message contains relevant text
-    const errorAlert = page.locator('.v-alert--type-error')
     await expect(errorAlert).toContainText(/Failed to connect|Unauthorized/i)
 
     // Verify we're still on the setup page
-    await expect(page).toHaveURL('/#/setup')
+    await expect(page).toHaveURL(/#\/setup$/)
 
     // Verify localStorage is empty (token should be cleared on error)
     const authStorage = await page.evaluate(() => {
@@ -293,11 +291,11 @@ test.describe('Setup/Authentication Flow', () => {
     // Submit the form
     await page.locator('button[type="submit"]').click()
 
-    // Wait for error message
-    await expect(page.locator('.v-alert--type-error')).toBeVisible()
+    // Wait for error message (the alert with the alert-circle icon; see above)
+    await expect(page.getByRole('alert').filter({ has: page.locator('.mdi-alert-circle') })).toBeVisible()
 
     // Verify we're still on the setup page
-    await expect(page).toHaveURL('/#/setup')
+    await expect(page).toHaveURL(/#\/setup$/)
   })
 
   test('should show link to create token', async ({ page }) => {
@@ -389,7 +387,7 @@ test.describe('Setup/Authentication Flow', () => {
     await page.locator('button[type="submit"]').click()
 
     // Wait for redirect
-    await page.waitForURL('/#/', { timeout: 5000 })
+    await page.waitForURL(/#\/$/, { timeout: 5000 })
 
     // Simulate logout (clearing localStorage)
     await page.evaluate(() => localStorage.clear())
@@ -465,7 +463,7 @@ test.describe('Setup/Authentication Flow', () => {
     await page.locator('button[type="submit"]').click()
 
     // Wait for redirect to dashboard
-    await page.waitForURL('/#/', { timeout: 5000 })
+    await page.waitForURL(/#\/$/, { timeout: 5000 })
 
     // Reload the page
     await page.reload()
