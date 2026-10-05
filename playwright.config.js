@@ -11,10 +11,15 @@ export default defineConfig({
   // Maximum time one test can run for
   timeout: 30 * 1000,
 
+  // Stop the whole run in CI before the 20-minute job timeout, so Playwright
+  // still prints its error summary and writes the HTML report
+  globalTimeout: process.env.CI ? 15 * 60 * 1000 : undefined,
+
   // Test execution settings
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  // One retry is enough to flag flaky tests; more multiplies the cost of real failures
+  retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 1 : undefined,
 
   // Reporter configuration
