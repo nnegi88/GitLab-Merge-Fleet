@@ -221,7 +221,8 @@ Designed for GitLab Enterprise Edition 14.9.0-ee with:
 ## Security
 
 - **Your GitLab token and Gemini API key stay in your browser.** By default they're kept for the current tab only (`sessionStorage`): a reload keeps them, and closing the tab forgets them. Turn on "Remember on this device" to keep them in `localStorage` instead.
-- **They aren't encrypted.** Any code running on this site, or anyone with access to your browser profile, could read them. Encryption with the key stored beside it wouldn't change that. Prefer a token with an expiry date.
+- **They aren't encrypted.** Anything that can run code on this web address, or anyone with access to your browser profile, could read them. Encryption with the key stored beside it wouldn't change that. Prefer a token with an expiry date.
+- **Other sites on the same address count.** Browsers share storage by origin (the scheme and host), not by path, and GitHub Pages serves all of an account's sites from `https://<account>.github.io`. The hosted copy shares `nnegi88.github.io` with two other sites, which load no third-party scripts. If you deploy your own copy, give it an address no other site uses, such as a dedicated account or organization, or a custom domain. If you can't, leave "Remember on this device" off.
 - **Each is sent only to its own service.** The token goes to your GitLab instance and the Gemini key to Google's Gemini API. There's no server of ours.
 - **Script injection is blocked.** AI review text is sanitized before it's displayed, and a Content-Security-Policy only lets the app's own scripts run.
 - **The GitLab connection uses HTTPS only.**
