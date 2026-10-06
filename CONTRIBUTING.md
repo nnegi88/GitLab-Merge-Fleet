@@ -53,6 +53,12 @@ By participating in this project, you agree to abide by our code of conduct. We 
 - Test with keyboard navigation and screen readers
 - Use Vuetify's built-in accessibility features
 
+### Security
+- Render untrusted markdown, such as AI reviews, with `<MarkdownContent>`, never with `v-html` directly. `vue/no-v-html` fails lint everywhere else.
+- The production build ships a Content-Security-Policy as a `<meta>` tag (`csp.config.js`). It only runs the app's own scripts: no inline scripts, inline event handlers, `javascript:` URLs or `eval`. The dev server doesn't get the policy, so problems show up in E2E, which runs against the production build.
+- Every E2E test fails if the page reports a CSP violation. Import `test` and `expect` from `tests/e2e/helpers/test.js`, not `@playwright/test`.
+- Loading something from a new place, such as a script, stylesheet, font or image host? Add it to the matching directive in `csp.config.js`, and update the pinned policy in `tests/unit/config/csp.test.js`. Never add `'unsafe-inline'` or `'unsafe-eval'` to `script-src`.
+
 ### Git Workflow
 1. Create feature branches from `develop`
 2. Use meaningful branch names: `feature/add-bulk-approve`
