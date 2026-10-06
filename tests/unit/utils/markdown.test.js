@@ -1,5 +1,5 @@
 import { renderMarkdown } from '../../../src/utils/markdown.js'
-import { vi, describe, it, expect, afterEach } from 'vitest'
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 
 // Parse into an inert document, so nothing in the output can run while we inspect it
 const toBody = (html) => new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html').body
@@ -84,7 +84,7 @@ describe('renderMarkdown', () => {
     it('should keep the line structure of a block of HTML shown as text', () => {
       const html = renderMarkdown('<details>\n<summary>More</summary>\n</details>')
 
-      expect(html).toBe('<p>&lt;details&gt;<br>&lt;summary&gt;More&lt;/summary&gt;<br>&lt;/details&gt;</p>')
+      expect(html).toBe('<p>&lt;details&gt;<br>&lt;summary&gt;More&lt;/summary&gt;<br>&lt;/details&gt;</p>\n')
     })
   })
 
@@ -175,14 +175,39 @@ describe('renderMarkdown', () => {
     })
   })
 
-  describe('when rendering fails', () => {
-    afterEach(() => {
-      vi.doUnmock('marked')
+  describe('safety nets', () => {
+    // Each test loads a fresh copy of the renderer with one dependency replaced
+    const loadRenderer = async () => (await import('../../../src/utils/markdown.js')).renderMarkdown
+
+    beforeEach(() => {
       vi.resetModules()
     })
 
-    it('should fall back to the escaped source', async () => {
+    afterEach(() => {
+      vi.doUnmock('marked')
+      vi.doUnmock('dompurify')
       vi.resetModules()
+    })
+
+    it('should sanitize hostile HTML even if marked emits it', async () => {
+      vi.doMock('marked', () => ({
+        Marked: class {
+          parse() {
+            return '<p onclick="alert(1)">text</p><img src=x onerror="alert(1)"><script>alert(1)</script>' +
+              '<svg onload="alert(1)"></svg><p style="background: url(https://attacker.example/pixel)">styled</p>' +
+              '<a href="javascript:alert(1)">bad</a><a href="https://example.com">good</a>'
+          }
+        }
+      }))
+      const html = (await loadRenderer())('anything')
+
+      expectInert(html)
+      const link = toBody(html).querySelector('a[href]')
+      expect(link.getAttribute('href')).toBe('https://example.com')
+      expect(link.getAttribute('rel')).toBe('noopener noreferrer')
+    })
+
+    it('should fall back to the escaped source if rendering throws', async () => {
       vi.doMock('marked', () => ({
         Marked: class {
           parse() {
@@ -191,13 +216,21 @@ describe('renderMarkdown', () => {
         }
       }))
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
-      const { renderMarkdown: renderWithBrokenParser } = await import('../../../src/utils/markdown.js')
 
-      expect(renderWithBrokenParser('<img src=x onerror=alert(1)>')).toBe(
+      expect((await loadRenderer())('<img src=x onerror=alert(1)>')).toBe(
         '<pre>&lt;img src=x onerror=alert(1)&gt;</pre>'
       )
       expect(consoleError).toHaveBeenCalledWith('Markdown rendering error:', expect.any(Error))
       consoleError.mockRestore()
+    })
+
+    it('should fall back to the escaped source where DOMPurify cannot run', async () => {
+      // An unsupported DOMPurify returns its input unchanged
+      vi.doMock('dompurify', () => ({
+        default: () => ({ isSupported: false, addHook: () => {}, sanitize: (dirty) => dirty })
+      }))
+
+      expect((await loadRenderer())('[click](javascript:alert(1))')).toBe('<pre>[click](javascript:alert(1))</pre>')
     })
   })
 })

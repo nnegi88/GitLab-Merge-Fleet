@@ -23,7 +23,7 @@ const parser = new Marked({
     // HTML, not formatting, and rendering it would let the reply inject markup
     html({ text, block }) {
       const escaped = escapeHtml(text)
-      return block ? `<p>${escaped.trim().replace(/\n/g, '<br>')}</p>` : escaped
+      return block ? `<p>${escaped.trim().replace(/\n/g, '<br>')}</p>\n` : escaped
     },
     // Images are never loaded (an attacker-chosen URL is a tracking pixel); link to them instead
     image({ href, text }) {
@@ -49,7 +49,8 @@ const SANITIZE_OPTIONS = {
   // Nothing on the page may load a remote resource
   FORBID_TAGS: ['img', 'picture', 'source', 'video', 'audio', 'track', 'style'],
   FORBID_ATTR: ['style'],
-  // Web and mail links only; DOMPurify would otherwise also allow relative URLs and other schemes
+  // Web and mail links only; DOMPurify would otherwise also allow relative URLs and other schemes.
+  // Relative and #anchor links lose their href too: review text has no pages of ours to point at
   ALLOWED_URI_REGEXP: /^(?:https?:|mailto:)/i
 }
 
@@ -62,6 +63,9 @@ export function renderMarkdown(markdown) {
   if (!markdown) return ''
 
   const source = String(markdown)
+  // Where DOMPurify can't run, sanitize() returns its input unchanged; never rely on it there
+  if (!purify.isSupported) return `<pre>${escapeHtml(source)}</pre>`
+
   try {
     return purify.sanitize(parser.parse(source), SANITIZE_OPTIONS)
   } catch (error) {
