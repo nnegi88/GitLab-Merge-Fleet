@@ -217,6 +217,31 @@ describe('authStore', () => {
     })
   })
 
+  describe('when storage is unavailable', () => {
+    it('should keep everything in memory rather than fail', () => {
+      // e.g. storage blocked by browser settings, or full
+      const blocked = () => {
+        throw new Error('SecurityError')
+      }
+      for (const storage of [localStorage, sessionStorage]) {
+        vi.spyOn(storage, 'getItem').mockImplementation(blocked)
+        vi.spyOn(storage, 'setItem').mockImplementation(blocked)
+        vi.spyOn(storage, 'removeItem').mockImplementation(blocked)
+      }
+
+      const blockedStore = freshStore()
+      blockedStore.setToken('glpat-123')
+      blockedStore.setGeminiApiKey('gemini-123')
+      blockedStore.setRemember(true)
+      blockedStore.setGitlabUrl('https://gitlab.example.com/')
+
+      expect(blockedStore.token).toBe('glpat-123')
+      expect(blockedStore.geminiApiKey).toBe('gemini-123')
+      expect(blockedStore.remember).toBe(true)
+      expect(blockedStore.gitlabUrl).toBe('https://gitlab.example.com')
+    })
+  })
+
   describe('nothing secret on this device unless remembered', () => {
     it('should leave only the non-secret settings in localStorage', () => {
       store.setGitlabUrl('https://gitlab.example.com')

@@ -21,6 +21,16 @@ const DEFAULT_GITLAB_URL = 'https://gitlab.com'
 
 const secretStorage = (remember) => (remember ? localStorage : sessionStorage)
 
+// Storage can be unavailable (blocked by browser settings, or full). Then secrets live in memory
+// only, for as long as the page is open, rather than the app failing to start or to save
+const tryStorage = (action, fallback = null) => {
+  try {
+    return action()
+  } catch {
+    return fallback
+  }
+}
+
 const readSettings = (key) => {
   try {
     return JSON.parse(localStorage.getItem(key)) || {}
@@ -38,30 +48,34 @@ const loadSettings = () => {
     remember: stored.remember === true
   }
 
-  if (localStorage.getItem(LEGACY_AUTH_KEY) !== null) {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
-  }
-  localStorage.removeItem(LEGACY_AUTH_KEY)
-  localStorage.removeItem(LEGACY_GEMINI_KEY)
+  tryStorage(() => {
+    if (localStorage.getItem(LEGACY_AUTH_KEY) !== null) {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+    }
+    localStorage.removeItem(LEGACY_AUTH_KEY)
+    localStorage.removeItem(LEGACY_GEMINI_KEY)
+  })
 
   return settings
 }
 
-const writeSecret = (storage, name, value) => {
+const readSecret = (remember, name) => tryStorage(() => secretStorage(remember).getItem(SECRET_KEYS[name]))
+
+const writeSecret = (remember, name, value) => tryStorage(() => {
+  const storage = secretStorage(remember)
   if (value) {
     storage.setItem(SECRET_KEYS[name], value)
   } else {
     storage.removeItem(SECRET_KEYS[name])
   }
-}
+})
 
 export const useAuthStore = defineStore('auth', {
   state: () => {
     const { gitlabUrl, remember } = loadSettings()
-    const storage = secretStorage(remember)
     return {
-      token: storage.getItem(SECRET_KEYS.token),
-      geminiApiKey: storage.getItem(SECRET_KEYS.geminiApiKey),
+      token: readSecret(remember, 'token'),
+      geminiApiKey: readSecret(remember, 'geminiApiKey'),
       gitlabUrl,
       remember,
       user: null
@@ -71,12 +85,12 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     setToken(token) {
       this.token = token || null
-      writeSecret(secretStorage(this.remember), 'token', this.token)
+      writeSecret(this.remember, 'token', this.token)
     },
 
     setGeminiApiKey(apiKey) {
       this.geminiApiKey = apiKey || null
-      writeSecret(secretStorage(this.remember), 'geminiApiKey', this.geminiApiKey)
+      writeSecret(this.remember, 'geminiApiKey', this.geminiApiKey)
     },
 
     clearToken() {
@@ -86,11 +100,9 @@ export const useAuthStore = defineStore('auth', {
 
     // Move both secrets to where the user now wants them kept
     setRemember(remember) {
-      const from = secretStorage(this.remember)
-      const to = secretStorage(remember)
       for (const name of Object.keys(SECRET_KEYS)) {
-        writeSecret(from, name, null)
-        writeSecret(to, name, this[name])
+        writeSecret(this.remember, name, null)
+        writeSecret(remember, name, this[name])
       }
       this.remember = remember
       this.saveSettings()
@@ -106,7 +118,7 @@ export const useAuthStore = defineStore('auth', {
     },
 
     saveSettings() {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ gitlabUrl: this.gitlabUrl, remember: this.remember }))
+      tryStorage(() => localStorage.setItem(SETTINGS_KEY, JSON.stringify({ gitlabUrl: this.gitlabUrl, remember: this.remember })))
     }
   }
 })

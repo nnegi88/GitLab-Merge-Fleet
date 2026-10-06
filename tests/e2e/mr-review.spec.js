@@ -713,13 +713,28 @@ Approve with minor suggestions. Great work!`
     await page.locator('button:has-text("Start AI Review")').click()
     await expect(page.locator('text=Review Summary')).toBeVisible({ timeout: 5000 })
 
+    // A headless browser can refuse clipboard writes when the page isn't focused, which made this
+    // test flaky. The app's feedback is what's under test, so record what's copied instead
+    await page.evaluate(() => {
+      window.__copiedText = []
+      Object.defineProperty(navigator.clipboard, 'writeText', {
+        value: text => {
+          window.__copiedText.push(text)
+          return Promise.resolve()
+        }
+      })
+    })
+
     // Click copy button
     const copyButton = page.locator('button:has-text("Copy Markdown")')
     await expect(copyButton).toBeVisible()
     await copyButton.click()
 
-    // Verify button text changes to "Copied!"
+    // Verify button text changes to "Copied!", and the review was what got copied
     await expect(page.locator('button:has-text("Copied!")')).toBeVisible()
+    const copiedText = await page.evaluate(() => window.__copiedText)
+    expect(copiedText).toHaveLength(1)
+    expect(copiedText[0]).toContain('## Code Quality')
 
     // Wait for button to reset (useClipboard has 2 second timeout)
     await expect(page.locator('button:has-text("Copy Markdown")')).toBeVisible({ timeout: 3000 })
