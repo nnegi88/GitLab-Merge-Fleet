@@ -41,14 +41,14 @@
         <v-card-text>
           <div class="d-flex align-center justify-space-between">
             <div>
-              <div class="text-body-1 font-weight-medium">Session Only Storage</div>
+              <div class="text-body-1 font-weight-medium">Remember on this device</div>
               <div class="text-body-2 text-medium-emphasis">
-                Don't persist authentication after browser close
+                Keep your GitLab token and Gemini API key after this tab closes
               </div>
             </div>
             <v-switch
-              :model-value="authStore.sessionOnly"
-              @update:model-value="authStore.setSessionOnly"
+              :model-value="authStore.remember"
+              @update:model-value="authStore.setRemember"
               color="primary"
               hide-details
             ></v-switch>
@@ -169,16 +169,12 @@ const isTesting = ref(false)
 const testResult = ref(null)
 
 onMounted(() => {
-  geminiApiKey.value = localStorage.getItem('gemini_api_key') || ''
+  geminiApiKey.value = authStore.geminiApiKey || ''
 })
 
 const handleSave = () => {
-  if (geminiApiKey.value) {
-    localStorage.setItem('gemini_api_key', geminiApiKey.value)
-  } else {
-    localStorage.removeItem('gemini_api_key')
-  }
-  
+  authStore.setGeminiApiKey(geminiApiKey.value)
+
   saved.value = true
   testResult.value = null
   setTimeout(() => {
@@ -191,13 +187,10 @@ const testGeminiConnection = async () => {
   
   isTesting.value = true
   testResult.value = null
-  
-  // Temporarily save the key for testing
-  const originalKey = localStorage.getItem('gemini_api_key')
-  localStorage.setItem('gemini_api_key', geminiApiKey.value)
-  
+
   try {
-    const result = await geminiAPI.testConnection()
+    // Test the key as typed, without saving it
+    const result = await geminiAPI.testConnection(geminiApiKey.value)
     testResult.value = result
   } catch (error) {
     testResult.value = {
@@ -205,12 +198,6 @@ const testGeminiConnection = async () => {
       error: error.message
     }
   } finally {
-    // Restore original key
-    if (originalKey) {
-      localStorage.setItem('gemini_api_key', originalKey)
-    } else {
-      localStorage.removeItem('gemini_api_key')
-    }
     isTesting.value = false
   }
 }

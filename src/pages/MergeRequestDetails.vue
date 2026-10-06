@@ -333,7 +333,7 @@ const reviewError = ref('')
 const showRawMarkdown = ref(false)
 
 // Check if Gemini API key is configured
-const hasGeminiKey = computed(() => !!localStorage.getItem('gemini_api_key'))
+const hasGeminiKey = computed(() => !!authStore.geminiApiKey)
 
 // Calculate diff stats from changes
 const diffStats = computed(() => {

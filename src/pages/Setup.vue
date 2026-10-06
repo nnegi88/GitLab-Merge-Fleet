@@ -51,9 +51,9 @@
             </div>
 
             <v-checkbox
-              :model-value="authStore.sessionOnly"
-              @update:model-value="authStore.setSessionOnly"
-              label="Session only (don't persist token after browser close)"
+              :model-value="authStore.remember"
+              @update:model-value="authStore.setRemember"
+              label="Remember on this device"
               color="primary"
               hide-details
             ></v-checkbox>
@@ -129,7 +129,7 @@ const handleSubmit = async () => {
     authStore.setGitlabUrl(authStore.gitlabUrl)
 
     // Set the token temporarily for testing
-    await authStore.setToken(token.value)
+    authStore.setToken(token.value)
     
     // Test the connection
     const testResult = await gitlabAPI.testConnection()
@@ -149,7 +149,7 @@ const handleSubmit = async () => {
     }
   } catch (err) {
     error.value = err.message || 'Failed to connect to GitLab'
-    await authStore.setToken(null)
+    authStore.setToken(null)
   } finally {
     loading.value = false
   }

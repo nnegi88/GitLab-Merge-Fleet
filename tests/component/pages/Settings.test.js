@@ -107,40 +107,34 @@ describe('Settings.vue', () => {
   })
 
   describe('Security Settings', () => {
-    it('should render session only toggle', () => {
+    it('should render the remember toggle', () => {
       wrapper = mountWithPlugins(Settings)
 
-      expect(wrapper.text()).toContain('Session Only Storage')
-      expect(wrapper.text()).toContain("Don't persist authentication after browser close")
+      expect(wrapper.text()).toContain('Remember on this device')
+      expect(wrapper.text()).toContain('Keep your GitLab token and Gemini API key after this tab closes')
     })
 
-    it('should reflect current session only setting', async () => {
+    it('should reflect whether secrets are remembered', async () => {
       wrapper = mountWithPlugins(Settings)
 
       authStore = useAuthStore()
-      authStore.sessionOnly = true
+      authStore.remember = true
       await wrapper.vm.$nextTick()
 
       const switchComponent = wrapper.findComponent({ name: 'VSwitch' })
-      expect(switchComponent.exists()).toBe(true)
       expect(switchComponent.props('modelValue')).toBe(true)
     })
 
-    it('should bind session only toggle to auth store', async () => {
+    it('should move the secrets onto this device when the toggle is turned on', async () => {
       wrapper = mountWithPlugins(Settings)
-
       authStore = useAuthStore()
-      authStore.sessionOnly = false
-      await wrapper.vm.$nextTick()
+      authStore.setToken('glpat-123')
 
-      const switchComponent = wrapper.findComponent({ name: 'VSwitch' })
-      expect(switchComponent.exists()).toBe(true)
-      expect(switchComponent.props('modelValue')).toBe(false)
+      await wrapper.findComponent({ name: 'VSwitch' }).find('input').setValue(true)
 
-      authStore.sessionOnly = true
-      await wrapper.vm.$nextTick()
-
-      expect(switchComponent.props('modelValue')).toBe(true)
+      expect(authStore.remember).toBe(true)
+      expect(mockLocalStorage.getItem('gitlab-token')).toBe('glpat-123')
+      expect(sessionStorage.getItem('gitlab-token')).toBeNull()
     })
   })
 
@@ -165,8 +159,8 @@ describe('Settings.vue', () => {
       expect(wrapper.text()).toContain('ai.google.dev')
     })
 
-    it('should load API key from localStorage on mount', async () => {
-      mockLocalStorage.setItem('gemini_api_key', 'test-api-key-123')
+    it('should load the saved Gemini key on mount', async () => {
+      sessionStorage.setItem('gemini-api-key', 'test-api-key-123')
 
       wrapper = mountWithPlugins(Settings)
       await wrapper.vm.$nextTick()
@@ -195,7 +189,7 @@ describe('Settings.vue', () => {
       expect(wrapper.text()).toContain('Save Settings')
     })
 
-    it('should save API key to localStorage when Save is clicked', async () => {
+    it('should save the Gemini key when Save is clicked', async () => {
       wrapper = mountWithPlugins(Settings)
 
       wrapper.vm.geminiApiKey = 'new-api-key-456'
@@ -209,7 +203,8 @@ describe('Settings.vue', () => {
       await saveButton.trigger('click')
       await wrapper.vm.$nextTick()
 
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('gemini_api_key', 'new-api-key-456')
+      expect(useAuthStore().geminiApiKey).toBe('new-api-key-456')
+      expect(sessionStorage.getItem('gemini-api-key')).toBe('new-api-key-456')
     })
 
     it('should show success message after saving', async () => {
@@ -229,8 +224,8 @@ describe('Settings.vue', () => {
       expect(wrapper.text()).toContain('Settings saved successfully!')
     })
 
-    it('should remove API key from localStorage when empty string is saved', async () => {
-      mockLocalStorage.setItem('gemini_api_key', 'existing-key')
+    it('should forget the Gemini key when an empty one is saved', async () => {
+      sessionStorage.setItem('gemini-api-key', 'existing-key')
 
       wrapper = mountWithPlugins(Settings)
       await wrapper.vm.$nextTick()
@@ -245,7 +240,8 @@ describe('Settings.vue', () => {
       await saveButton.trigger('click')
       await wrapper.vm.$nextTick()
 
-      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('gemini_api_key')
+      expect(useAuthStore().geminiApiKey).toBeNull()
+      expect(sessionStorage.getItem('gemini-api-key')).toBeNull()
     })
 
     it('should hide success message after timeout', async () => {
@@ -389,7 +385,7 @@ describe('Settings.vue', () => {
       expect(wrapper.vm.isTesting).toBe(false)
     })
 
-    it('should temporarily save API key for testing', async () => {
+    it('should test the typed key without saving it', async () => {
       geminiAPI.testConnection.mockResolvedValue({ success: true })
 
       wrapper = mountWithPlugins(Settings)
@@ -400,10 +396,8 @@ describe('Settings.vue', () => {
       await wrapper.vm.testGeminiConnection()
       await wrapper.vm.$nextTick()
 
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-        'gemini_api_key',
-        'test-key-for-connection'
-      )
+      expect(geminiAPI.testConnection).toHaveBeenCalledWith('test-key-for-connection')
+      expect(useAuthStore().geminiApiKey).toBeNull()
     })
 
     it('should clear test results when saving settings', async () => {
@@ -473,7 +467,7 @@ describe('Settings.vue', () => {
       await saveButton.trigger('click')
       await wrapper.vm.$nextTick()
 
-      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('gemini_api_key')
+      expect(useAuthStore().geminiApiKey).toBeNull()
     })
 
     it('should update API key when input changes', async () => {
@@ -501,11 +495,11 @@ describe('Settings.vue', () => {
 
       wrapper.vm.geminiApiKey = 'key-1'
       await wrapper.vm.handleSave()
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('gemini_api_key', 'key-1')
+      expect(useAuthStore().geminiApiKey).toBe('key-1')
 
       wrapper.vm.geminiApiKey = 'key-2'
       await wrapper.vm.handleSave()
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('gemini_api_key', 'key-2')
+      expect(useAuthStore().geminiApiKey).toBe('key-2')
     })
   })
 })

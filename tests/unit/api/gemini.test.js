@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { setActivePinia, createPinia } from 'pinia'
 import GeminiAPI from '../../../src/api/gemini.js'
+import { useAuthStore } from '../../../src/stores/authStore.js'
 
 const ENDPOINT =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
@@ -29,8 +31,8 @@ const sentRequest = () => {
 
 describe('GeminiAPI', () => {
   beforeEach(() => {
-    localStorage.clear()
-    localStorage.setItem('gemini_api_key', 'test-key')
+    setActivePinia(createPinia())
+    useAuthStore().setGeminiApiKey('test-key')
     vi.stubGlobal('fetch', vi.fn())
     vi.spyOn(console, 'error').mockImplementation(() => {})
   })
@@ -42,7 +44,7 @@ describe('GeminiAPI', () => {
 
   describe('generateContent', () => {
     it('refuses to call Gemini when no API key is configured', async () => {
-      localStorage.removeItem('gemini_api_key')
+      useAuthStore().setGeminiApiKey(null)
 
       await expect(GeminiAPI.generateContent('hi')).rejects.toThrow(
         'Gemini API key not configured. Please add it in Settings.'
@@ -193,7 +195,7 @@ describe('GeminiAPI', () => {
     })
 
     it('wraps a missing API key as "AI Review failed"', async () => {
-      localStorage.removeItem('gemini_api_key')
+      useAuthStore().setGeminiApiKey(null)
 
       await expect(GeminiAPI.reviewMergeRequest(mrData, diffData)).rejects.toThrow(
         'AI Review failed: Gemini API key not configured. Please add it in Settings.'
@@ -295,6 +297,15 @@ describe('GeminiAPI', () => {
   })
 
   describe('testConnection', () => {
+    it('tests a key it is given instead of the saved one, without saving it', async () => {
+      fetch.mockResolvedValue(okResponse(geminiReply('Connection successful')))
+
+      await GeminiAPI.testConnection('typed-key')
+
+      expect(sentRequest().url).toBe(`${ENDPOINT}?key=typed-key`)
+      expect(useAuthStore().geminiApiKey).toBe('test-key')
+    })
+
     it('reports success with the start of the reply', async () => {
       fetch.mockResolvedValue(okResponse(geminiReply('Connection successful')))
 
@@ -314,7 +325,7 @@ describe('GeminiAPI', () => {
     })
 
     it('reports failure with the error message instead of throwing', async () => {
-      localStorage.removeItem('gemini_api_key')
+      useAuthStore().setGeminiApiKey(null)
 
       await expect(GeminiAPI.testConnection()).resolves.toEqual({
         success: false,
