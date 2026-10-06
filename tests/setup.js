@@ -5,8 +5,9 @@
 
 import { enableAutoUnmount } from '@vue/test-utils'
 
-// Mock localStorage
-const localStorageMock = (() => {
+// Mock Web Storage: separate instances for localStorage and sessionStorage, so tests can
+// tell where something is kept (secrets go to sessionStorage unless remembered)
+const createStorageMock = () => {
   let store = {}
 
   return {
@@ -28,7 +29,10 @@ const localStorageMock = (() => {
       return keys[index] || null
     }
   }
-})()
+}
+
+const localStorageMock = createStorageMock()
+const sessionStorageMock = createStorageMock()
 
 // Create mock function factory
 const createMockFn = (returnValue) => {
@@ -51,7 +55,7 @@ const createMockFn = (returnValue) => {
 // Setup global mocks
 if (typeof global !== 'undefined') {
   global.localStorage = localStorageMock
-  global.sessionStorage = localStorageMock
+  global.sessionStorage = sessionStorageMock
 
   // Mock crypto API for auth store token encryption
   // Only mock if crypto doesn't exist or is not read-only
@@ -133,9 +137,7 @@ if (typeof beforeEach !== 'undefined') {
       vi.clearAllMocks()
     }
     localStorageMock.clear()
-    if (typeof sessionStorage !== 'undefined') {
-      sessionStorage.clear()
-    }
+    sessionStorageMock.clear()
   })
 }
 

@@ -1,5 +1,6 @@
 import { PromptBuilderService } from "../services/promptBuilder.js";
 import { ReviewParserService } from "../services/reviewParser.js";
+import { useAuthStore } from "../stores/authStore.js";
 
 /**
  * Gemini AI API service for code reviews
@@ -35,12 +36,12 @@ class GeminiAPI {
   }
 
   getApiKey() {
-    return localStorage.getItem("gemini_api_key");
+    return useAuthStore().geminiApiKey;
   }
 
   async generateContent(prompt, options = {}) {
-    const { signal } = options;
-    const apiKey = this.getApiKey();
+    // An explicit apiKey (e.g. one being tested in Settings) overrides the saved one
+    const { signal, apiKey = this.getApiKey() } = options;
     if (!apiKey) {
       throw new Error(
         "Gemini API key not configured. Please add it in Settings."
@@ -157,11 +158,11 @@ class GeminiAPI {
     }
   }
 
-  async testConnection() {
+  async testConnection(apiKey) {
     try {
       const testPrompt =
         'Hello, this is a test. Please respond with "Connection successful".';
-      const response = await this.generateContent(testPrompt);
+      const response = await this.generateContent(testPrompt, { apiKey });
       return {
         success: true,
         message: "Gemini API connection successful",

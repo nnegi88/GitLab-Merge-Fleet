@@ -1,5 +1,5 @@
 import { test, expect } from './helpers/test.js'
-import { loginViaSetup } from './helpers/auth.js'
+import { loginViaSetup, setGeminiApiKey } from './helpers/auth.js'
 
 /**
  * E2E Tests for MR Details and AI Review
@@ -428,10 +428,7 @@ Approve with minor suggestions. Great work!`
   test('should successfully trigger AI review and display results', async ({ page }) => {
     await loginViaSetup(page, { user: mockUser })
 
-    // Set Gemini API key in localStorage
-    await page.evaluate(() => {
-      localStorage.setItem('gemini_api_key', 'test-gemini-api-key')
-    })
+    await setGeminiApiKey(page)
 
     // Mock GitLab API responses
     await page.route('**/api/v4/projects/100/merge_requests/10', async route => {
@@ -501,10 +498,7 @@ Approve with minor suggestions. Great work!`
   test('should display AI review loading state', async ({ page }) => {
     await loginViaSetup(page, { user: mockUser })
 
-    // Set Gemini API key
-    await page.evaluate(() => {
-      localStorage.setItem('gemini_api_key', 'test-gemini-api-key')
-    })
+    await setGeminiApiKey(page)
 
     // Mock GitLab API responses
     await page.route('**/api/v4/projects/100/merge_requests/10', async route => {
@@ -552,10 +546,7 @@ Approve with minor suggestions. Great work!`
   test('should toggle between rendered and raw markdown view', async ({ page }) => {
     await loginViaSetup(page, { user: mockUser })
 
-    // Set Gemini API key
-    await page.evaluate(() => {
-      localStorage.setItem('gemini_api_key', 'test-gemini-api-key')
-    })
+    await setGeminiApiKey(page)
 
     // Mock GitLab API responses
     await page.route('**/api/v4/projects/100/merge_requests/10', async route => {
@@ -629,9 +620,7 @@ Approve with minor suggestions. Great work!`
     })
 
     await loginViaSetup(page, { user: mockUser })
-    await page.evaluate(() => {
-      localStorage.setItem('gemini_api_key', 'test-gemini-api-key')
-    })
+    await setGeminiApiKey(page)
 
     await page.route('**/api/v4/projects/100/merge_requests/10', async route => {
       await route.fulfill({
@@ -690,10 +679,7 @@ Approve with minor suggestions. Great work!`
   test('should copy review to clipboard', async ({ page }) => {
     await loginViaSetup(page, { user: mockUser })
 
-    // Set Gemini API key
-    await page.evaluate(() => {
-      localStorage.setItem('gemini_api_key', 'test-gemini-api-key')
-    })
+    await setGeminiApiKey(page)
 
     // Mock GitLab API responses
     await page.route('**/api/v4/projects/100/merge_requests/10', async route => {
@@ -727,13 +713,28 @@ Approve with minor suggestions. Great work!`
     await page.locator('button:has-text("Start AI Review")').click()
     await expect(page.locator('text=Review Summary')).toBeVisible({ timeout: 5000 })
 
+    // A headless browser can refuse clipboard writes when the page isn't focused, which made this
+    // test flaky. The app's feedback is what's under test, so record what's copied instead
+    await page.evaluate(() => {
+      window.__copiedText = []
+      Object.defineProperty(navigator.clipboard, 'writeText', {
+        value: text => {
+          window.__copiedText.push(text)
+          return Promise.resolve()
+        }
+      })
+    })
+
     // Click copy button
     const copyButton = page.locator('button:has-text("Copy Markdown")')
     await expect(copyButton).toBeVisible()
     await copyButton.click()
 
-    // Verify button text changes to "Copied!"
+    // Verify button text changes to "Copied!", and the review was what got copied
     await expect(page.locator('button:has-text("Copied!")')).toBeVisible()
+    const copiedText = await page.evaluate(() => window.__copiedText)
+    expect(copiedText).toHaveLength(1)
+    expect(copiedText[0]).toContain('## Code Quality')
 
     // Wait for button to reset (useClipboard has 2 second timeout)
     await expect(page.locator('button:has-text("Copy Markdown")')).toBeVisible({ timeout: 3000 })
@@ -742,10 +743,7 @@ Approve with minor suggestions. Great work!`
   test('should clear AI review', async ({ page }) => {
     await loginViaSetup(page, { user: mockUser })
 
-    // Set Gemini API key
-    await page.evaluate(() => {
-      localStorage.setItem('gemini_api_key', 'test-gemini-api-key')
-    })
+    await setGeminiApiKey(page)
 
     // Mock GitLab API responses
     await page.route('**/api/v4/projects/100/merge_requests/10', async route => {
@@ -794,10 +792,7 @@ Approve with minor suggestions. Great work!`
   test('should handle AI review API errors', async ({ page }) => {
     await loginViaSetup(page, { user: mockUser })
 
-    // Set Gemini API key
-    await page.evaluate(() => {
-      localStorage.setItem('gemini_api_key', 'test-gemini-api-key')
-    })
+    await setGeminiApiKey(page)
 
     // Mock GitLab API responses
     await page.route('**/api/v4/projects/100/merge_requests/10', async route => {
@@ -845,10 +840,7 @@ Approve with minor suggestions. Great work!`
   test('should post AI review as comment', async ({ page }) => {
     await loginViaSetup(page, { user: mockUser })
 
-    // Set Gemini API key
-    await page.evaluate(() => {
-      localStorage.setItem('gemini_api_key', 'test-gemini-api-key')
-    })
+    await setGeminiApiKey(page)
 
     // Mock GitLab API responses
     await page.route('**/api/v4/projects/100/merge_requests/10', async route => {
@@ -931,10 +923,7 @@ Approve with minor suggestions. Great work!`
   test('should handle post comment errors', async ({ page }) => {
     await loginViaSetup(page, { user: mockUser })
 
-    // Set Gemini API key
-    await page.evaluate(() => {
-      localStorage.setItem('gemini_api_key', 'test-gemini-api-key')
-    })
+    await setGeminiApiKey(page)
 
     // Mock GitLab API responses
     await page.route('**/api/v4/projects/100/merge_requests/10', async route => {

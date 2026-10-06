@@ -1,8 +1,8 @@
 import { expect } from '@playwright/test'
 
 /**
- * Log in through the real setup page, so the app encrypts and stores the
- * token itself (a hand-built `auth-storage` value cannot be decrypted).
+ * Log in through the real setup page, so the app stores the token itself,
+ * where it keeps it by default (for this tab).
  *
  * Registers, in this order:
  * - a catch-all for the GitLab API that aborts requests, so nothing reaches a
@@ -41,4 +41,16 @@ export async function loginViaSetup(page, {
 
   await expect(page.locator('text=Successfully connected!')).toBeVisible()
   await page.waitForURL(/#\/$/)
+}
+
+/**
+ * Give the app a Gemini API key the way it keeps one by default (for this tab),
+ * then reload: the app reads stored secrets once, when it starts.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {String} apiKey - Gemini API key to store
+ */
+export async function setGeminiApiKey(page, apiKey = 'test-gemini-api-key') {
+  await page.evaluate(key => sessionStorage.setItem('gemini-api-key', key), apiKey)
+  await page.reload()
 }

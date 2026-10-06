@@ -1,159 +1,124 @@
 import { defineStore } from 'pinia'
 
-const STORAGE_KEY = 'auth-storage'
-
-const encryptToken = async (token) => {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(token)
-  
-  const key = await crypto.subtle.generateKey(
-    { name: 'AES-GCM', length: 256 },
-    true,
-    ['encrypt', 'decrypt']
-  )
-  
-  const iv = crypto.getRandomValues(new Uint8Array(12))
-  const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    data
-  )
-  
-  const exportedKey = await crypto.subtle.exportKey('raw', key)
-  
-  return {
-    encrypted: btoa(String.fromCharCode(...new Uint8Array(encrypted))),
-    key: btoa(String.fromCharCode(...new Uint8Array(exportedKey))),
-    iv: btoa(String.fromCharCode(...iv))
-  }
+// The store owns both secrets: the GitLab token and the Gemini API key. They're kept for
+// this tab only (sessionStorage), so a reload keeps them and closing the tab forgets them,
+// unless the user chooses to remember them on this device (localStorage). Nothing encrypts
+// them: any code running on this site could read them anyway.
+const SECRET_KEYS = {
+  token: 'gitlab-token',
+  geminiApiKey: 'gemini-api-key'
 }
 
-const decryptToken = async (encryptedData) => {
-  const { encrypted, key, iv } = encryptedData
-  
-  const importedKey = await crypto.subtle.importKey(
-    'raw',
-    new Uint8Array(atob(key).split('').map(c => c.charCodeAt(0))),
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['decrypt']
-  )
-  
-  const decrypted = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: new Uint8Array(atob(iv).split('').map(c => c.charCodeAt(0))) },
-    importedKey,
-    new Uint8Array(atob(encrypted).split('').map(c => c.charCodeAt(0)))
-  )
-  
-  const decoder = new TextDecoder()
-  return decoder.decode(decrypted)
-}
+// Not secret, so always kept in localStorage
+const SETTINGS_KEY = 'auth-settings'
 
-const loadStoredState = () => {
+// Left by earlier versions: an "encrypted" token whose key was stored beside it, and a
+// plain-text Gemini key. Removed on load; only the GitLab URL is carried over
+const LEGACY_AUTH_KEY = 'auth-storage'
+const LEGACY_GEMINI_KEY = 'gemini_api_key'
+
+const DEFAULT_GITLAB_URL = 'https://gitlab.com'
+
+const secretStorage = (remember) => (remember ? localStorage : sessionStorage)
+
+// Storage can be unavailable (blocked by browser settings, or full). Then secrets live in memory
+// only, for as long as the page is open, rather than the app failing to start or to save
+const tryStorage = (action, fallback = null) => {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      return JSON.parse(stored)
-    }
-  } catch (error) {
-    console.error('Failed to load stored state:', error)
-  }
-  return {
-    encryptedToken: null,
-    gitlabUrl: 'https://gitlab.com',
-    sessionOnly: false
+    return action()
+  } catch {
+    return fallback
   }
 }
+
+const readSettings = (key) => {
+  try {
+    return JSON.parse(localStorage.getItem(key)) || {}
+  } catch (error) {
+    console.error('Failed to load stored settings:', error)
+    return {}
+  }
+}
+
+const loadSettings = () => {
+  const legacy = readSettings(LEGACY_AUTH_KEY)
+  const stored = readSettings(SETTINGS_KEY)
+  const settings = {
+    gitlabUrl: stored.gitlabUrl || legacy.gitlabUrl || DEFAULT_GITLAB_URL,
+    remember: stored.remember === true
+  }
+
+  tryStorage(() => {
+    if (localStorage.getItem(LEGACY_AUTH_KEY) !== null) {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+    }
+    localStorage.removeItem(LEGACY_AUTH_KEY)
+    localStorage.removeItem(LEGACY_GEMINI_KEY)
+  })
+
+  return settings
+}
+
+const readSecret = (remember, name) => tryStorage(() => secretStorage(remember).getItem(SECRET_KEYS[name]))
+
+const writeSecret = (remember, name, value) => tryStorage(() => {
+  const storage = secretStorage(remember)
+  if (value) {
+    storage.setItem(SECRET_KEYS[name], value)
+  } else {
+    storage.removeItem(SECRET_KEYS[name])
+  }
+})
 
 export const useAuthStore = defineStore('auth', {
   state: () => {
-    const initialState = loadStoredState()
+    const { gitlabUrl, remember } = loadSettings()
     return {
-      token: null,
-      encryptedToken: initialState.encryptedToken,
-      gitlabUrl: initialState.gitlabUrl,
-      user: null,
-      sessionOnly: initialState.sessionOnly
+      token: readSecret(remember, 'token'),
+      geminiApiKey: readSecret(remember, 'geminiApiKey'),
+      gitlabUrl,
+      remember,
+      user: null
     }
   },
 
   actions: {
-    async setToken(token) {
-      if (token) {
-        const encrypted = await encryptToken(token)
-        this.token = token
-        this.encryptedToken = encrypted
-        
-        if (!this.sessionOnly) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({
-            encryptedToken: encrypted,
-            gitlabUrl: this.gitlabUrl,
-            sessionOnly: this.sessionOnly
-          }))
-        }
-      } else {
-        this.token = null
-        this.encryptedToken = null
-        localStorage.removeItem(STORAGE_KEY)
-      }
+    setToken(token) {
+      this.token = token || null
+      writeSecret(this.remember, 'token', this.token)
     },
 
-    async loadToken() {
-      if (this.encryptedToken) {
-        try {
-          const token = await decryptToken(this.encryptedToken)
-          this.token = token
-          return token
-        } catch (error) {
-          console.error('Failed to decrypt token:', error)
-          this.token = null
-          this.encryptedToken = null
-          localStorage.removeItem(STORAGE_KEY)
-        }
-      }
-      return null
+    setGeminiApiKey(apiKey) {
+      this.geminiApiKey = apiKey || null
+      writeSecret(this.remember, 'geminiApiKey', this.geminiApiKey)
     },
 
     clearToken() {
-      this.token = null
-      this.encryptedToken = null
+      this.setToken(null)
       this.user = null
-      localStorage.removeItem(STORAGE_KEY)
+    },
+
+    // Move both secrets to where the user now wants them kept
+    setRemember(remember) {
+      for (const name of Object.keys(SECRET_KEYS)) {
+        writeSecret(this.remember, name, null)
+        writeSecret(remember, name, this[name])
+      }
+      this.remember = remember
+      this.saveSettings()
     },
 
     setGitlabUrl(url) {
-      const cleanUrl = url.replace(/\/$/, '')
-      this.gitlabUrl = cleanUrl
-      
-      if (!this.sessionOnly && this.encryptedToken) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          encryptedToken: this.encryptedToken,
-          gitlabUrl: cleanUrl,
-          sessionOnly: this.sessionOnly
-        }))
-      }
+      this.gitlabUrl = url.replace(/\/$/, '')
+      this.saveSettings()
     },
 
     setUser(user) {
       this.user = user
     },
 
-    setSessionOnly(sessionOnly) {
-      this.sessionOnly = sessionOnly
-      
-      // Always save the sessionOnly preference.
-      // If sessionOnly is true, store null for encryptedToken to ensure it's not persisted.
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        encryptedToken: sessionOnly ? null : this.encryptedToken,
-        gitlabUrl: this.gitlabUrl,
-        sessionOnly: sessionOnly
-      }))
-    },
-
-    async initialize() {
-      if (this.encryptedToken && !this.token) {
-        await this.loadToken()
-      }
+    saveSettings() {
+      tryStorage(() => localStorage.setItem(SETTINGS_KEY, JSON.stringify({ gitlabUrl: this.gitlabUrl, remember: this.remember })))
     }
   }
 })

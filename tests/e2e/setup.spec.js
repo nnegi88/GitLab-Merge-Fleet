@@ -6,8 +6,7 @@ import { test, expect } from './helpers/test.js'
  * Tests the complete authentication flow including:
  * - Initial setup with GitLab credentials
  * - Token validation and user authentication
- * - localStorage persistence
- * - Session-only mode
+ * - Where the token is kept: this tab only, or remembered on this device
  * - Error handling for invalid credentials
  */
 
@@ -101,10 +100,11 @@ test.describe('Setup/Authentication Flow', () => {
     await page.waitForURL(/#\/$/, { timeout: 5000 })
   })
 
-  test('should persist credentials to localStorage', async ({ page }) => {
+  test('should keep the token for this tab only by default', async ({ page }) => {
+    // Keep every page in this browser away from a real GitLab server
+    await page.context().route('**/api/v4/**', route => route.abort())
     await page.goto('/#/setup')
 
-    // Mock the GitLab API responses
     await page.route('**/api/v4/user', async route => {
       await route.fulfill({
         status: 200,
@@ -113,47 +113,38 @@ test.describe('Setup/Authentication Flow', () => {
       })
     })
 
-    // Fill in the form
     const urlInput = page.locator('input[type="url"]')
-    const tokenInput = page.locator('input[type="password"]')
-
     await urlInput.clear()
     await urlInput.fill(gitlabUrl)
-    await tokenInput.fill(validToken)
+    await page.locator('input[type="password"]').fill(validToken)
 
-    // Make sure session-only is NOT checked
-    const sessionOnlyCheckbox = page.locator('input[type="checkbox"]')
-    await sessionOnlyCheckbox.uncheck()
+    // Remembering is off unless asked for
+    await expect(page.getByLabel('Remember on this device')).not.toBeChecked()
 
-    // Submit the form
     await page.locator('button[type="submit"]').click()
+    await page.waitForURL(/#\/$/, { timeout: 5000 })
 
-    // Wait for success
-    await expect(page.locator('text=Successfully connected!')).toBeVisible()
+    // Kept for this tab, not on the device; only non-secret settings are in localStorage
+    expect(await page.evaluate(() => sessionStorage.getItem('gitlab-token'))).toBe(validToken)
+    expect(await page.evaluate(() => localStorage.getItem('gitlab-token'))).toBeNull()
+    expect(JSON.parse(await page.evaluate(() => localStorage.getItem('auth-settings'))))
+      .toEqual({ gitlabUrl, remember: false })
 
-    // Verify localStorage contains auth data
-    const authStorage = await page.evaluate(() => {
-      return localStorage.getItem('auth-storage')
-    })
+    // A reload keeps you signed in
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Merge Requests' })).toBeVisible()
 
-    expect(authStorage).toBeTruthy()
-
-    const authData = JSON.parse(authStorage)
-    expect(authData).toHaveProperty('encryptedToken')
-    expect(authData).toHaveProperty('gitlabUrl')
-    expect(authData.gitlabUrl).toBe(gitlabUrl)
-    expect(authData.sessionOnly).toBe(false)
-
-    // Verify encrypted token structure
-    expect(authData.encryptedToken).toHaveProperty('encrypted')
-    expect(authData.encryptedToken).toHaveProperty('key')
-    expect(authData.encryptedToken).toHaveProperty('iv')
+    // A new tab doesn't get the token
+    const newTab = await page.context().newPage()
+    await newTab.goto('/#/')
+    await expect(newTab).toHaveURL(/#\/setup$/)
   })
 
-  test('should handle session-only mode correctly', async ({ page }) => {
+  test('should remember the token on this device when asked', async ({ page }) => {
+    // Keep every page in this browser away from a real GitLab server
+    await page.context().route('**/api/v4/**', route => route.abort())
     await page.goto('/#/setup')
 
-    // Mock the GitLab API responses
     await page.route('**/api/v4/user', async route => {
       await route.fulfill({
         status: 200,
@@ -162,37 +153,23 @@ test.describe('Setup/Authentication Flow', () => {
       })
     })
 
-    // Fill in the form
     const urlInput = page.locator('input[type="url"]')
-    const tokenInput = page.locator('input[type="password"]')
-    const sessionOnlyCheckbox = page.locator('input[type="checkbox"]')
-
     await urlInput.clear()
     await urlInput.fill(gitlabUrl)
-    await tokenInput.fill(validToken)
+    await page.locator('input[type="password"]').fill(validToken)
+    await page.getByLabel('Remember on this device').check()
 
-    // Enable session-only mode
-    await sessionOnlyCheckbox.check()
-
-    // Submit the form
     await page.locator('button[type="submit"]').click()
+    await page.waitForURL(/#\/$/, { timeout: 5000 })
 
-    // Wait for success
-    await expect(page.locator('text=Successfully connected!')).toBeVisible()
+    expect(await page.evaluate(() => localStorage.getItem('gitlab-token'))).toBe(validToken)
+    expect(await page.evaluate(() => sessionStorage.getItem('gitlab-token'))).toBeNull()
+    expect(JSON.parse(await page.evaluate(() => localStorage.getItem('auth-settings'))).remember).toBe(true)
 
-    // Verify localStorage contains auth data with sessionOnly flag
-    const authStorage = await page.evaluate(() => {
-      return localStorage.getItem('auth-storage')
-    })
-
-    expect(authStorage).toBeTruthy()
-
-    const authData = JSON.parse(authStorage)
-    expect(authData.sessionOnly).toBe(true)
-
-    // In session-only mode, encryptedToken should not be persisted
-    // (The store sets it to null in localStorage when sessionOnly is true)
-    expect(authData.encryptedToken).toBeNull()
+    // A new tab is signed in too
+    const newTab = await page.context().newPage()
+    await newTab.goto('/#/')
+    await expect(newTab.getByRole('heading', { name: 'Merge Requests' })).toBeVisible()
   })
 
   test('should display error message for invalid credentials', async ({ page }) => {
@@ -231,12 +208,13 @@ test.describe('Setup/Authentication Flow', () => {
     // Verify we're still on the setup page
     await expect(page).toHaveURL(/#\/setup$/)
 
-    // Verify localStorage is empty (token should be cleared on error)
-    const authStorage = await page.evaluate(() => {
-      return localStorage.getItem('auth-storage')
-    })
+    // The rejected token isn't kept anywhere
+    const storedTokens = await page.evaluate(() => [
+      sessionStorage.getItem('gitlab-token'),
+      localStorage.getItem('gitlab-token')
+    ])
 
-    expect(authStorage).toBeNull()
+    expect(storedTokens).toEqual([null, null])
   })
 
   test('should display loading state during authentication', async ({ page }) => {
@@ -354,14 +332,10 @@ test.describe('Setup/Authentication Flow', () => {
     // Wait for success
     await expect(page.locator('text=Successfully connected!')).toBeVisible()
 
-    // Verify localStorage contains URL without trailing slash
-    const authStorage = await page.evaluate(() => {
-      return localStorage.getItem('auth-storage')
-    })
+    // Verify the URL is saved without the trailing slash
+    const settings = JSON.parse(await page.evaluate(() => localStorage.getItem('auth-settings')))
 
-    const authData = JSON.parse(authStorage)
-    expect(authData.gitlabUrl).toBe('https://gitlab.example.com')
-    expect(authData.gitlabUrl).not.toContain('https://gitlab.example.com/')
+    expect(settings.gitlabUrl).toBe('https://gitlab.example.com')
   })
 
   test('should allow re-authentication after logout', async ({ page }) => {
@@ -434,49 +408,5 @@ test.describe('Setup/Authentication Flow', () => {
     // The form element has type="url" which provides built-in validation
     const isValid = await urlInput.evaluate(el => el.validity.valid)
     expect(isValid).toBe(false)
-  })
-
-  test('should persist authentication across page reloads', async ({ page }) => {
-    await page.goto('/#/setup')
-
-    // Mock the GitLab API responses
-    await page.route('**/api/v4/user', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(mockUser)
-      })
-    })
-
-    // Fill in the form
-    const urlInput = page.locator('input[type="url"]')
-    const tokenInput = page.locator('input[type="password"]')
-
-    await urlInput.clear()
-    await urlInput.fill(gitlabUrl)
-    await tokenInput.fill(validToken)
-
-    // Make sure session-only is NOT checked
-    await page.locator('input[type="checkbox"]').uncheck()
-
-    // Submit the form
-    await page.locator('button[type="submit"]').click()
-
-    // Wait for redirect to dashboard
-    await page.waitForURL(/#\/$/, { timeout: 5000 })
-
-    // Reload the page
-    await page.reload()
-
-    // Verify localStorage still contains auth data
-    const authStorage = await page.evaluate(() => {
-      return localStorage.getItem('auth-storage')
-    })
-
-    expect(authStorage).toBeTruthy()
-
-    const authData = JSON.parse(authStorage)
-    expect(authData).toHaveProperty('encryptedToken')
-    expect(authData.gitlabUrl).toBe(gitlabUrl)
   })
 })

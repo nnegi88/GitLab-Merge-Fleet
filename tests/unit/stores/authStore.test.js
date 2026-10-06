@@ -4,396 +4,253 @@ import { useAuthStore } from '../../../src/stores/authStore.js'
 
 describe('authStore', () => {
   let store
-  let mockCrypto
+
+  // A new store reads what's stored, the way a page reload does
+  const freshStore = () => {
+    setActivePinia(createPinia())
+    return useAuthStore()
+  }
+
+  const settings = () => JSON.parse(localStorage.getItem('auth-settings'))
 
   beforeEach(() => {
-    // Create fresh Pinia instance for each test
-    setActivePinia(createPinia())
-
-    // Clear localStorage
-    localStorage.clear()
-
-    // Setup crypto mocks
-    mockCrypto = {
-      subtle: {
-        generateKey: vi.fn().mockResolvedValue('mock-key'),
-        exportKey: vi.fn().mockResolvedValue(new Uint8Array(32).fill(1)),
-        importKey: vi.fn().mockResolvedValue('mock-imported-key'),
-        encrypt: vi.fn().mockResolvedValue(new Uint8Array(16).fill(2)),
-        decrypt: vi.fn().mockResolvedValue(new TextEncoder().encode('decrypted-token'))
-      },
-      getRandomValues: vi.fn((arr) => {
-        for (let i = 0; i < arr.length; i++) {
-          arr[i] = i
-        }
-        return arr
-      })
-    }
-
-    vi.stubGlobal('crypto', mockCrypto)
-
-    // Spy on console.error to suppress expected error logs
     vi.spyOn(console, 'error').mockImplementation(() => {})
-
-    // Create store instance
-    store = useAuthStore()
+    store = freshStore()
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
-    vi.unstubAllGlobals()
   })
 
   describe('initial state', () => {
-    it('should initialize with default values when no stored state', () => {
+    it('should start with no secrets, gitlab.com and nothing remembered', () => {
       expect(store.token).toBeNull()
-      expect(store.encryptedToken).toBeNull()
+      expect(store.geminiApiKey).toBeNull()
       expect(store.gitlabUrl).toBe('https://gitlab.com')
+      expect(store.remember).toBe(false)
       expect(store.user).toBeNull()
-      expect(store.sessionOnly).toBe(false)
     })
 
-    it('should load stored state from localStorage on initialization', () => {
-      const storedState = {
+    it('should load secrets kept for this tab', () => {
+      sessionStorage.setItem('gitlab-token', 'glpat-tab')
+      sessionStorage.setItem('gemini-api-key', 'gemini-tab')
+
+      const reloaded = freshStore()
+
+      expect(reloaded.token).toBe('glpat-tab')
+      expect(reloaded.geminiApiKey).toBe('gemini-tab')
+    })
+
+    it('should load remembered secrets from this device', () => {
+      localStorage.setItem('auth-settings', JSON.stringify({ gitlabUrl: 'https://gitlab.example.com', remember: true }))
+      localStorage.setItem('gitlab-token', 'glpat-remembered')
+      localStorage.setItem('gemini-api-key', 'gemini-remembered')
+
+      const reloaded = freshStore()
+
+      expect(reloaded.remember).toBe(true)
+      expect(reloaded.gitlabUrl).toBe('https://gitlab.example.com')
+      expect(reloaded.token).toBe('glpat-remembered')
+      expect(reloaded.geminiApiKey).toBe('gemini-remembered')
+    })
+
+    it('should fall back to defaults when the stored settings are corrupt', () => {
+      localStorage.setItem('auth-settings', 'invalid-json')
+
+      const reloaded = freshStore()
+
+      expect(reloaded.gitlabUrl).toBe('https://gitlab.com')
+      expect(reloaded.remember).toBe(false)
+      expect(console.error).toHaveBeenCalledWith('Failed to load stored settings:', expect.any(Error))
+    })
+  })
+
+  describe('entries left by earlier versions', () => {
+    it('should remove the old token and Gemini key but keep the GitLab URL', () => {
+      localStorage.setItem('auth-storage', JSON.stringify({
         encryptedToken: { encrypted: 'abc', key: 'def', iv: 'ghi' },
         gitlabUrl: 'https://gitlab.example.com',
         sessionOnly: false
-      }
+      }))
+      localStorage.setItem('gemini_api_key', 'plain-text-key')
 
-      localStorage.setItem('auth-storage', JSON.stringify(storedState))
+      const reloaded = freshStore()
 
-      // Create fresh Pinia and store to trigger initialization with stored data
-      setActivePinia(createPinia())
-      const newStore = useAuthStore()
-
-      expect(newStore.encryptedToken).toEqual(storedState.encryptedToken)
-      expect(newStore.gitlabUrl).toBe('https://gitlab.example.com')
-      expect(newStore.sessionOnly).toBe(false)
-    })
-
-    it('should handle corrupt localStorage data gracefully', () => {
-      localStorage.setItem('auth-storage', 'invalid-json')
-
-      // Create fresh Pinia and store to trigger initialization with corrupt data
-      setActivePinia(createPinia())
-      const newStore = useAuthStore()
-
-      expect(newStore.encryptedToken).toBeNull()
-      expect(newStore.gitlabUrl).toBe('https://gitlab.com')
-      expect(console.error).toHaveBeenCalledWith('Failed to load stored state:', expect.any(Error))
+      expect(localStorage.getItem('auth-storage')).toBeNull()
+      expect(localStorage.getItem('gemini_api_key')).toBeNull()
+      expect(reloaded.token).toBeNull()
+      expect(reloaded.geminiApiKey).toBeNull()
+      expect(reloaded.gitlabUrl).toBe('https://gitlab.example.com')
+      expect(freshStore().gitlabUrl).toBe('https://gitlab.example.com')
     })
   })
 
   describe('setToken', () => {
-    it('should encrypt and store token', async () => {
-      await store.setToken('test-token')
+    it('should keep the token for this tab only by default', () => {
+      store.setToken('glpat-123')
 
-      expect(mockCrypto.subtle.generateKey).toHaveBeenCalled()
-      expect(mockCrypto.subtle.encrypt).toHaveBeenCalled()
-      expect(mockCrypto.subtle.exportKey).toHaveBeenCalled()
-      expect(store.token).toBe('test-token')
-      expect(store.encryptedToken).toBeDefined()
-      expect(store.encryptedToken).toHaveProperty('encrypted')
-      expect(store.encryptedToken).toHaveProperty('key')
-      expect(store.encryptedToken).toHaveProperty('iv')
+      expect(store.token).toBe('glpat-123')
+      expect(sessionStorage.getItem('gitlab-token')).toBe('glpat-123')
+      expect(localStorage.getItem('gitlab-token')).toBeNull()
+      expect(freshStore().token).toBe('glpat-123')
     })
 
-    it('should save encrypted token to localStorage when not session-only', async () => {
-      store.sessionOnly = false
-      await store.setToken('test-token')
+    it('should keep the token on this device when remembering', () => {
+      store.setRemember(true)
+      store.setToken('glpat-123')
 
-      const stored = JSON.parse(localStorage.getItem('auth-storage'))
-      expect(stored.encryptedToken).toBeDefined()
-      expect(stored.gitlabUrl).toBe('https://gitlab.com')
-      expect(stored.sessionOnly).toBe(false)
+      expect(localStorage.getItem('gitlab-token')).toBe('glpat-123')
+      expect(sessionStorage.getItem('gitlab-token')).toBeNull()
     })
 
-    it('should not save encrypted token to localStorage when session-only', async () => {
-      store.sessionOnly = true
-      await store.setToken('test-token')
+    it.each([[null], ['']])('should forget the token when given %j', (empty) => {
+      store.setToken('glpat-123')
 
-      expect(localStorage.getItem('auth-storage')).toBeNull()
-      expect(store.token).toBe('test-token')
-      expect(store.encryptedToken).toBeDefined()
-    })
-
-    it('should clear token when null is provided', async () => {
-      await store.setToken('test-token')
-      expect(store.token).toBe('test-token')
-
-      await store.setToken(null)
+      store.setToken(empty)
 
       expect(store.token).toBeNull()
-      expect(store.encryptedToken).toBeNull()
-      expect(localStorage.getItem('auth-storage')).toBeNull()
-    })
-
-    it('should clear token when empty string is provided', async () => {
-      await store.setToken('test-token')
-      expect(store.token).toBe('test-token')
-
-      await store.setToken('')
-
-      expect(store.token).toBeNull()
-      expect(store.encryptedToken).toBeNull()
-      expect(localStorage.getItem('auth-storage')).toBeNull()
+      expect(sessionStorage.getItem('gitlab-token')).toBeNull()
     })
   })
 
-  describe('loadToken', () => {
-    it('should decrypt and load stored token', async () => {
-      const encryptedToken = {
-        encrypted: btoa('encrypted-data'),
-        key: btoa('key-data'),
-        iv: btoa('iv-data')
-      }
-      store.encryptedToken = encryptedToken
+  describe('setGeminiApiKey', () => {
+    it('should keep the Gemini key for this tab only by default', () => {
+      store.setGeminiApiKey('gemini-123')
 
-      const token = await store.loadToken()
-
-      expect(mockCrypto.subtle.importKey).toHaveBeenCalled()
-      expect(mockCrypto.subtle.decrypt).toHaveBeenCalled()
-      expect(token).toBe('decrypted-token')
-      expect(store.token).toBe('decrypted-token')
+      expect(store.geminiApiKey).toBe('gemini-123')
+      expect(sessionStorage.getItem('gemini-api-key')).toBe('gemini-123')
+      expect(localStorage.getItem('gemini-api-key')).toBeNull()
     })
 
-    it('should return null when no encrypted token exists', async () => {
-      const token = await store.loadToken()
+    it('should keep the Gemini key on this device when remembering', () => {
+      store.setRemember(true)
+      store.setGeminiApiKey('gemini-123')
 
-      expect(token).toBeNull()
-      expect(mockCrypto.subtle.decrypt).not.toHaveBeenCalled()
+      expect(localStorage.getItem('gemini-api-key')).toBe('gemini-123')
     })
 
-    it('should handle decryption errors and clear token', async () => {
-      const encryptedToken = {
-        encrypted: btoa('encrypted-data'),
-        key: btoa('key-data'),
-        iv: btoa('iv-data')
-      }
-      store.encryptedToken = encryptedToken
-      localStorage.setItem('auth-storage', JSON.stringify({ encryptedToken }))
+    it('should forget the Gemini key when cleared', () => {
+      store.setGeminiApiKey('gemini-123')
 
-      mockCrypto.subtle.decrypt.mockRejectedValue(new Error('Decryption failed'))
+      store.setGeminiApiKey('')
 
-      const token = await store.loadToken()
-
-      expect(token).toBeNull()
-      expect(store.token).toBeNull()
-      expect(store.encryptedToken).toBeNull()
-      expect(localStorage.getItem('auth-storage')).toBeNull()
-      expect(console.error).toHaveBeenCalledWith('Failed to decrypt token:', expect.any(Error))
+      expect(store.geminiApiKey).toBeNull()
+      expect(sessionStorage.getItem('gemini-api-key')).toBeNull()
     })
   })
 
   describe('clearToken', () => {
-    it('should clear all auth state', async () => {
-      await store.setToken('test-token')
-      store.user = { id: 1, username: 'testuser' }
+    it('should sign out of GitLab but keep the Gemini key', () => {
+      store.setToken('glpat-123')
+      store.setGeminiApiKey('gemini-123')
+      store.setUser({ id: 1, username: 'testuser' })
 
       store.clearToken()
 
       expect(store.token).toBeNull()
-      expect(store.encryptedToken).toBeNull()
       expect(store.user).toBeNull()
-      expect(localStorage.getItem('auth-storage')).toBeNull()
+      expect(sessionStorage.getItem('gitlab-token')).toBeNull()
+      expect(store.geminiApiKey).toBe('gemini-123')
+    })
+  })
+
+  describe('setRemember', () => {
+    beforeEach(() => {
+      store.setToken('glpat-123')
+      store.setGeminiApiKey('gemini-123')
     })
 
-    it('should clear localStorage even if token is already null', () => {
-      localStorage.setItem('auth-storage', JSON.stringify({ encryptedToken: 'test' }))
+    it('should move both secrets onto this device', () => {
+      store.setRemember(true)
 
-      store.clearToken()
+      expect(localStorage.getItem('gitlab-token')).toBe('glpat-123')
+      expect(localStorage.getItem('gemini-api-key')).toBe('gemini-123')
+      expect(sessionStorage.getItem('gitlab-token')).toBeNull()
+      expect(sessionStorage.getItem('gemini-api-key')).toBeNull()
+      expect(settings().remember).toBe(true)
+    })
 
-      expect(localStorage.getItem('auth-storage')).toBeNull()
+    it('should move both secrets back to this tab when no longer remembering', () => {
+      store.setRemember(true)
+
+      store.setRemember(false)
+
+      expect(sessionStorage.getItem('gitlab-token')).toBe('glpat-123')
+      expect(sessionStorage.getItem('gemini-api-key')).toBe('gemini-123')
+      expect(localStorage.getItem('gitlab-token')).toBeNull()
+      expect(localStorage.getItem('gemini-api-key')).toBeNull()
+      expect(settings().remember).toBe(false)
+    })
+
+    it('should keep the choice for the next visit', () => {
+      store.setRemember(true)
+
+      const reloaded = freshStore()
+
+      expect(reloaded.remember).toBe(true)
+      expect(reloaded.token).toBe('glpat-123')
     })
   })
 
   describe('setGitlabUrl', () => {
-    it('should set GitLab URL and remove trailing slash', () => {
+    it('should remove a trailing slash', () => {
       store.setGitlabUrl('https://gitlab.example.com/')
 
       expect(store.gitlabUrl).toBe('https://gitlab.example.com')
     })
 
-    it('should set GitLab URL without trailing slash', () => {
+    it('should keep the URL for the next visit even when not remembering secrets', () => {
       store.setGitlabUrl('https://gitlab.example.com')
 
-      expect(store.gitlabUrl).toBe('https://gitlab.example.com')
-    })
-
-    it('should save URL to localStorage when not session-only and token exists', async () => {
-      await store.setToken('test-token')
-      store.sessionOnly = false
-
-      store.setGitlabUrl('https://gitlab.example.com')
-
-      const stored = JSON.parse(localStorage.getItem('auth-storage'))
-      expect(stored.gitlabUrl).toBe('https://gitlab.example.com')
-    })
-
-    it('should not save to localStorage when session-only', async () => {
-      store.sessionOnly = true
-      await store.setToken('test-token')
-
-      store.setGitlabUrl('https://gitlab.example.com')
-
-      expect(localStorage.getItem('auth-storage')).toBeNull()
-      expect(store.gitlabUrl).toBe('https://gitlab.example.com')
-    })
-
-    it('should not save to localStorage when no encrypted token', () => {
-      store.sessionOnly = false
-      store.encryptedToken = null
-
-      store.setGitlabUrl('https://gitlab.example.com')
-
-      expect(localStorage.getItem('auth-storage')).toBeNull()
+      expect(settings()).toEqual({ gitlabUrl: 'https://gitlab.example.com', remember: false })
+      expect(freshStore().gitlabUrl).toBe('https://gitlab.example.com')
     })
   })
 
   describe('setUser', () => {
-    it('should set user data', () => {
-      const userData = { id: 1, username: 'testuser', email: 'test@example.com' }
-
-      store.setUser(userData)
-
-      expect(store.user).toEqual(userData)
-    })
-
-    it('should allow setting user to null', () => {
-      store.user = { id: 1, username: 'testuser' }
+    it('should set and clear the user', () => {
+      store.setUser({ id: 1, username: 'testuser' })
+      expect(store.user).toEqual({ id: 1, username: 'testuser' })
 
       store.setUser(null)
-
       expect(store.user).toBeNull()
     })
   })
 
-  describe('setSessionOnly', () => {
-    it('should set session-only mode to true and remove encrypted token from storage', async () => {
-      await store.setToken('test-token')
-      store.sessionOnly = false
-
-      // Verify token is in localStorage
-      let stored = JSON.parse(localStorage.getItem('auth-storage'))
-      expect(stored.encryptedToken).toBeDefined()
-
-      store.setSessionOnly(true)
-
-      expect(store.sessionOnly).toBe(true)
-      stored = JSON.parse(localStorage.getItem('auth-storage'))
-      expect(stored.encryptedToken).toBeNull()
-      expect(stored.sessionOnly).toBe(true)
-      expect(stored.gitlabUrl).toBe('https://gitlab.com')
-    })
-
-    it('should set session-only mode to false and save encrypted token to storage', async () => {
-      await store.setToken('test-token')
-      store.sessionOnly = true
-
-      store.setSessionOnly(false)
-
-      expect(store.sessionOnly).toBe(false)
-      const stored = JSON.parse(localStorage.getItem('auth-storage'))
-      expect(stored.encryptedToken).toBeDefined()
-      expect(stored.sessionOnly).toBe(false)
-    })
-
-    it('should save session-only preference even without encrypted token', () => {
-      store.encryptedToken = null
-
-      store.setSessionOnly(true)
-
-      const stored = JSON.parse(localStorage.getItem('auth-storage'))
-      expect(stored.sessionOnly).toBe(true)
-      expect(stored.encryptedToken).toBeNull()
-    })
-  })
-
-  describe('initialize', () => {
-    it('should load token if encrypted token exists but token is null', async () => {
-      const encryptedToken = {
-        encrypted: btoa('encrypted-data'),
-        key: btoa('key-data'),
-        iv: btoa('iv-data')
+  describe('when storage is unavailable', () => {
+    it('should keep everything in memory rather than fail', () => {
+      // e.g. storage blocked by browser settings, or full
+      const blocked = () => {
+        throw new Error('SecurityError')
       }
-      store.encryptedToken = encryptedToken
-      store.token = null
-
-      await store.initialize()
-
-      expect(mockCrypto.subtle.decrypt).toHaveBeenCalled()
-      expect(store.token).toBe('decrypted-token')
-    })
-
-    it('should not load token if token already exists', async () => {
-      const encryptedToken = {
-        encrypted: btoa('encrypted-data'),
-        key: btoa('key-data'),
-        iv: btoa('iv-data')
+      for (const storage of [localStorage, sessionStorage]) {
+        vi.spyOn(storage, 'getItem').mockImplementation(blocked)
+        vi.spyOn(storage, 'setItem').mockImplementation(blocked)
+        vi.spyOn(storage, 'removeItem').mockImplementation(blocked)
       }
-      store.encryptedToken = encryptedToken
-      store.token = 'existing-token'
 
-      await store.initialize()
+      const blockedStore = freshStore()
+      blockedStore.setToken('glpat-123')
+      blockedStore.setGeminiApiKey('gemini-123')
+      blockedStore.setRemember(true)
+      blockedStore.setGitlabUrl('https://gitlab.example.com/')
 
-      expect(mockCrypto.subtle.decrypt).not.toHaveBeenCalled()
-      expect(store.token).toBe('existing-token')
-    })
-
-    it('should not load token if no encrypted token exists', async () => {
-      store.encryptedToken = null
-      store.token = null
-
-      await store.initialize()
-
-      expect(mockCrypto.subtle.decrypt).not.toHaveBeenCalled()
-      expect(store.token).toBeNull()
+      expect(blockedStore.token).toBe('glpat-123')
+      expect(blockedStore.geminiApiKey).toBe('gemini-123')
+      expect(blockedStore.remember).toBe(true)
+      expect(blockedStore.gitlabUrl).toBe('https://gitlab.example.com')
     })
   })
 
-  describe('persistence', () => {
-    it('should persist state across store instances when not session-only', async () => {
-      await store.setToken('test-token')
+  describe('nothing secret on this device unless remembered', () => {
+    it('should leave only the non-secret settings in localStorage', () => {
       store.setGitlabUrl('https://gitlab.example.com')
-      store.sessionOnly = false
+      store.setToken('glpat-123')
+      store.setGeminiApiKey('gemini-123')
 
-      // Create new store instance
-      const newStore = useAuthStore()
-
-      expect(newStore.encryptedToken).toBeDefined()
-      expect(newStore.gitlabUrl).toBe('https://gitlab.example.com')
-      expect(newStore.sessionOnly).toBe(false)
-    })
-
-    it('should not persist encrypted token when session-only mode', async () => {
-      store.sessionOnly = true
-      await store.setToken('test-token')
-      store.setGitlabUrl('https://gitlab.example.com')
-
-      // Create fresh Pinia and store instance to simulate page reload
-      setActivePinia(createPinia())
-      const newStore = useAuthStore()
-
-      expect(newStore.encryptedToken).toBeNull()
-      expect(newStore.token).toBeNull()
-    })
-  })
-
-  describe('encryption flow', () => {
-    it('should encrypt and decrypt token correctly', async () => {
-      // Mock crypto to return deterministic values
-      const originalToken = 'my-secret-token'
-      mockCrypto.subtle.decrypt.mockResolvedValue(new TextEncoder().encode(originalToken))
-
-      await store.setToken(originalToken)
-      expect(store.token).toBe(originalToken)
-
-      // Clear token in memory
-      store.token = null
-
-      // Load token should decrypt it
-      const loadedToken = await store.loadToken()
-      expect(loadedToken).toBe(originalToken)
+      const keys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
+      expect(keys).toEqual(['auth-settings'])
+      expect(localStorage.getItem('auth-settings')).not.toContain('glpat-123')
     })
   })
 })

@@ -8,7 +8,7 @@ A modern, frontend-only GitLab multi-repository merge request management tool wi
 - **AI Code Reviews**: Integrated Google Gemini 2.5 Flash for intelligent code review and analysis
 - **Modern UI**: Built with Vue.js 3 and Vuetify 3 Material Design components
 - **Real-time Updates**: Efficient data fetching with TanStack Vue Query and automatic caching
-- **Secure**: User-provided tokens stored encrypted in browser localStorage
+- **Local secrets**: your GitLab token and Gemini API key stay in your browser, kept for the current tab unless you choose to remember them on this device
 - **No Backend Required**: Fully frontend-only architecture
 
 ## Technology Stack
@@ -220,10 +220,11 @@ Designed for GitLab Enterprise Edition 14.9.0-ee with:
 
 ## Security
 
-- Personal Access Tokens encrypted using Web Crypto API
-- All sensitive data stored locally in browser
-- No server-side storage or transmission of credentials
-- HTTPS-only communication with GitLab instance
+- **Your GitLab token and Gemini API key stay in your browser.** By default they're kept for the current tab only (`sessionStorage`): a reload keeps them, and closing the tab forgets them. Turn on "Remember on this device" to keep them in `localStorage` instead.
+- **They aren't encrypted.** Any code running on this site, or anyone with access to your browser profile, could read them. Encryption with the key stored beside it wouldn't change that. Prefer a token with an expiry date.
+- **Each is sent only to its own service.** The token goes to your GitLab instance and the Gemini key to Google's Gemini API. There's no server of ours.
+- **Script injection is blocked.** AI review text is sanitized before it's displayed, and a Content-Security-Policy only lets the app's own scripts run.
+- **The GitLab connection uses HTTPS only.**
 
 ## Deployment
 

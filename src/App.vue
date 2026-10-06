@@ -36,18 +36,11 @@ window.showGlobalError = () => {
   errorBanner.value?.showError()
 }
 
-onMounted(async () => {
-  try {
-    await authStore.initialize()
-    
-    // Route to setup if no token
-    if (!authStore.token && router.currentRoute.value.name !== 'setup') {
-      router.push('/setup')
-    }
-  } catch (error) {
-    console.error('Failed to initialize auth:', error)
-  } finally {
-    isInitialized.value = true
+onMounted(() => {
+  // Route to setup if no token
+  if (!authStore.token && router.currentRoute.value.name !== 'setup') {
+    router.push('/setup')
   }
+  isInitialized.value = true
 })
 </script>
