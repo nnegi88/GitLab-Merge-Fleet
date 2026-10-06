@@ -175,10 +175,15 @@ describe('Settings.vue', () => {
       expect(passwordInputs.length).toBeGreaterThan(0)
     })
 
-    it('should show info alert about local storage', () => {
+    it('should say truthfully where the API key is kept and who can read it', () => {
       wrapper = mountWithPlugins(Settings)
 
-      expect(wrapper.text()).toContain('Your API key is stored locally in your browser and never sent to our servers.')
+      const text = wrapper.text()
+      expect(text).toContain('Your API key stays in this browser: for this tab only, unless "Remember on this device" is on.')
+      expect(text).toContain("It's sent only to Google's Gemini API.")
+      expect(text).toContain("It isn't encrypted")
+      expect(text).not.toContain('never sent to our servers')
+      expect(text).not.toContain('stored securely')
     })
   })
 
