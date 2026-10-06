@@ -161,10 +161,7 @@
             <!-- Detailed Review -->
             <v-card v-if="!showRawMarkdown" variant="tonal">
               <v-card-text class="pa-4">
-                <div 
-                  class="markdown-content"
-                  v-html="renderMarkdown(aiReview.fullReview)"
-                ></div>
+                <MarkdownContent class="markdown-content" :source="aiReview.fullReview" />
               </v-card-text>
             </v-card>
 
@@ -314,12 +311,12 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
-import { marked } from 'marked'
 import gitlabAPI from '../api/gitlab'
 import geminiAPI from '../api/gemini'
 import { useAuthStore } from '../stores/authStore'
 import { formatDate } from '../utils/dateUtils'
 import { useClipboard } from '../hooks/useClipboard'
+import MarkdownContent from '../components/MarkdownContent.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -367,24 +364,6 @@ const diffStats = computed(() => {
     filesChanged: changes.value.changes.length
   }
 })
-
-// Configure marked for GitLab-flavored markdown
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-  headerIds: false,
-  mangle: false
-})
-
-function renderMarkdown(markdown) {
-  if (!markdown) return ''
-  try {
-    return marked.parse(markdown)
-  } catch (error) {
-    console.error('Markdown parsing error:', error)
-    return `<pre>${markdown}</pre>`
-  }
-}
 
 // Fetch MR details
 const { data: mergeRequest, isLoading: isLoadingMR, error: mrError } = useQuery({
