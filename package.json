@@ -28,6 +28,7 @@
     "@sentry/vue": "^7.108.0",
     "@tanstack/vue-query": "^5.104.0",
     "axios": "^1.6.8",
+    "dompurify": "^3.4.16",
     "lucide-vue-next": "^0.330.0",
     "marked": "^18.0.14",
     "pinia": "^2.1.7",
