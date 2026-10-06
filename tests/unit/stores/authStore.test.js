@@ -217,6 +217,151 @@ describe('authStore', () => {
     })
   })
 
+  describe('when another tab changes what is kept on this device', () => {
+    // The 'storage' event another tab's change fires in this one
+    const otherTab = (key, newValue) => store.syncFromStorage({ key, newValue, storageArea: localStorage })
+    const settingsJson = (settings) => JSON.stringify({ gitlabUrl: 'https://gitlab.com', ...settings })
+
+    beforeEach(() => {
+      store.setRemember(true)
+      store.setToken('glpat-123')
+      store.setGeminiApiKey('gemini-123')
+      store.setUser({ id: 1, username: 'testuser' })
+    })
+
+    it('should sign out when another tab signs out, without writing anything back', () => {
+      localStorage.removeItem('gitlab-token')
+      const setItem = vi.spyOn(localStorage, 'setItem')
+
+      otherTab('gitlab-token', null)
+
+      expect(store.token).toBeNull()
+      expect(store.user).toBeNull()
+      expect(store.geminiApiKey).toBe('gemini-123')
+      expect(setItem).not.toHaveBeenCalled()
+      expect(localStorage.getItem('gitlab-token')).toBeNull()
+    })
+
+    it('should forget the Gemini key when another tab clears it', () => {
+      otherTab('gemini-api-key', null)
+
+      expect(store.geminiApiKey).toBeNull()
+      expect(store.token).toBe('glpat-123')
+    })
+
+    it('should take a new remembered token from another tab', () => {
+      otherTab('gitlab-token', 'glpat-456')
+
+      expect(store.token).toBe('glpat-456')
+      expect(store.user).toBeNull()
+    })
+
+    it('should keep its secrets for this tab when another tab stops remembering', () => {
+      const setItem = vi.spyOn(localStorage, 'setItem')
+
+      otherTab('auth-settings', settingsJson({ remember: false }))
+
+      expect(store.remember).toBe(false)
+      expect(store.token).toBe('glpat-123')
+      expect(sessionStorage.getItem('gitlab-token')).toBe('glpat-123')
+      expect(sessionStorage.getItem('gemini-api-key')).toBe('gemini-123')
+      expect(setItem).not.toHaveBeenCalled()
+    })
+
+    it('should not put back a secret the other tab removed after it stopped remembering', () => {
+      otherTab('auth-settings', settingsJson({ remember: false }))
+      localStorage.removeItem('gemini-api-key')
+      otherTab('gemini-api-key', null)
+
+      // Saving the Gemini key in this tab now keeps it for this tab only
+      store.setGeminiApiKey('gemini-789')
+
+      expect(store.geminiApiKey).toBe('gemini-789')
+      expect(localStorage.getItem('gemini-api-key')).toBeNull()
+      expect(sessionStorage.getItem('gemini-api-key')).toBe('gemini-789')
+    })
+
+    it('should take the remembered secrets when another tab starts remembering', () => {
+      const tab = freshStore()
+      tab.setToken('glpat-tab')
+      localStorage.setItem('gitlab-token', 'glpat-device')
+      localStorage.setItem('gemini-api-key', 'gemini-device')
+
+      tab.syncFromStorage({ key: 'auth-settings', newValue: settingsJson({ remember: false }), storageArea: localStorage })
+      tab.syncFromStorage({ key: 'auth-settings', newValue: settingsJson({ remember: true }), storageArea: localStorage })
+
+      expect(tab.remember).toBe(true)
+      expect(tab.token).toBe('glpat-device')
+      expect(tab.geminiApiKey).toBe('gemini-device')
+    })
+
+    it('should follow a GitLab URL change', () => {
+      otherTab('auth-settings', JSON.stringify({ gitlabUrl: 'https://gitlab.example.com', remember: true }))
+
+      expect(store.gitlabUrl).toBe('https://gitlab.example.com')
+      expect(store.remember).toBe(true)
+    })
+
+    it('should ignore secret changes on the device while not remembering', () => {
+      store.setRemember(false)
+
+      otherTab('gitlab-token', 'glpat-someone-else')
+
+      expect(store.token).toBe('glpat-123')
+    })
+
+    it('should ignore changes to other storage and unrelated keys', () => {
+      store.syncFromStorage({ key: 'gitlab-token', newValue: null, storageArea: sessionStorage })
+      otherTab('repository_review_results', '{}')
+
+      expect(store.token).toBe('glpat-123')
+      expect(store.geminiApiKey).toBe('gemini-123')
+    })
+
+    it('should treat settings it cannot read as not remembering', () => {
+      otherTab('auth-settings', 'invalid-json')
+
+      expect(store.remember).toBe(false)
+      expect(sessionStorage.getItem('gitlab-token')).toBe('glpat-123')
+    })
+
+    it('should stop remembering when another tab clears all storage', () => {
+      otherTab(null, null)
+
+      expect(store.remember).toBe(false)
+      expect(store.token).toBe('glpat-123')
+      expect(sessionStorage.getItem('gitlab-token')).toBe('glpat-123')
+    })
+  })
+
+  describe('setRemember order, as other tabs see it', () => {
+    const writesTo = (storage) => {
+      const writes = []
+      vi.spyOn(storage, 'setItem').mockImplementation((key) => writes.push(`set ${key}`))
+      vi.spyOn(storage, 'removeItem').mockImplementation((key) => writes.push(`remove ${key}`))
+      return writes
+    }
+
+    it('should put the secrets on the device before the settings say they are remembered', () => {
+      store.setToken('glpat-123')
+      const writes = writesTo(localStorage)
+
+      store.setRemember(true)
+
+      expect(writes.indexOf('set gitlab-token')).toBeLessThan(writes.indexOf('set auth-settings'))
+    })
+
+    it('should say the secrets are no longer remembered before removing them', () => {
+      store.setRemember(true)
+      store.setToken('glpat-123')
+      const writes = writesTo(localStorage)
+
+      store.setRemember(false)
+
+      expect(writes.indexOf('set auth-settings')).toBeLessThan(writes.indexOf('remove gitlab-token'))
+    })
+  })
+
   describe('when storage is unavailable', () => {
     it('should keep everything in memory rather than fail', () => {
       // e.g. storage blocked by browser settings, or full

@@ -20,7 +20,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from './components/Layout.vue'
 import GlobalErrorBanner from './components/GlobalErrorBanner.vue'
@@ -37,10 +37,17 @@ window.showGlobalError = () => {
 }
 
 onMounted(() => {
+  // Follow other open tabs when they change what's remembered on this device
+  window.addEventListener('storage', authStore.syncFromStorage)
+
   // Route to setup if no token
   if (!authStore.token && router.currentRoute.value.name !== 'setup') {
     router.push('/setup')
   }
   isInitialized.value = true
+})
+
+onUnmounted(() => {
+  window.removeEventListener('storage', authStore.syncFromStorage)
 })
 </script>
