@@ -8,6 +8,9 @@
  * the policy would block. E2E runs against the production build and fails any test
  * that triggers a violation, so a page that needs a new source shows up in CI.
  * Adding an external host is covered in CONTRIBUTING.md.
+ *
+ * Browsers ignore frame-ancestors, sandbox and report-uri/report-to in a <meta>
+ * policy, so adding them here would do nothing; they need HTTP headers.
  */
 
 /**
@@ -26,7 +29,8 @@ export function contentSecurityPolicy({ sentry = false } = {}) {
     'img-src': ["'self'", 'data:'],
     'font-src': ["'self'"],
     // GitLab is whatever host the user configures, and Gemini is called from the browser.
-    // A running script could leak data by navigating anyway, so the protection is script-src
+    // A running script could leak data by navigating anyway, so the protection is script-src.
+    // Plain-http GitLab hosts are blocked, which an https page can't reach anyway (mixed content)
     'connect-src': ["'self'", 'https:'],
     'object-src': ["'none'"],
     'base-uri': ["'self'"],

@@ -45,14 +45,16 @@ test.describe('Content-Security-Policy', () => {
       link.click()
     })
 
-    // One report per payload: the handler, the inline script and the javascript: URL
-    await expect.poll(() => cspViolations.length).toBeGreaterThanOrEqual(3)
-    expect(await page.evaluate(() => window.__xss)).toBeUndefined()
-    for (const violation of cspViolations) {
-      expect(violation).toMatch(/^script-src/)
+    try {
+      // One report per payload: the handler, the inline script and the javascript: URL
+      await expect.poll(() => cspViolations.length).toBeGreaterThanOrEqual(3)
+      expect(await page.evaluate(() => window.__xss)).toBeUndefined()
+      for (const violation of cspViolations) {
+        expect(violation).toMatch(/^script-src/)
+      }
+    } finally {
+      // These violations are the point of the test, so the fixture mustn't fail it on them
+      cspViolations.length = 0
     }
-
-    // These violations are the point of the test, so don't fail it on them
-    cspViolations.length = 0
   })
 })

@@ -58,6 +58,18 @@ export default [
       'no-console': 'off'
     }
   },
+  // E2E specs use the shared test, which fails a test on any Content-Security-Policy violation
+  {
+    files: ['tests/e2e/**/*.spec.js'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        paths: [{
+          name: '@playwright/test',
+          message: "Import test and expect from './helpers/test.js', which fails a test on any CSP violation."
+        }]
+      }]
+    }
+  },
   // Tests run in Node with Vitest's globals enabled (test.globals in vitest.config.js)
   {
     files: ['tests/**'],
