@@ -79,7 +79,7 @@
           </v-alert>
           <div class="d-flex flex-column ga-4">
             <v-tooltip
-              text="Get a free API key from https://ai.google.dev/ - stored securely in your browser"
+              text="Get a free API key from https://ai.google.dev/"
               location="top"
             >
               <template v-slot:activator="{ props }">
@@ -101,7 +101,7 @@
               type="info"
               variant="tonal"
               icon="mdi-information"
-              text="Your API key is stored locally in your browser and never sent to our servers."
+              text="Your API key stays in this browser: for this tab only, unless &quot;Remember on this device&quot; is on. It's sent only to Google's Gemini API. It isn't encrypted, so anything that can run code on this web address, or anyone with access to your browser profile, can read it."
             ></v-alert>
 
             <v-alert

@@ -47,9 +47,14 @@ test.describe('Setup/Authentication Flow', () => {
     const submitButton = page.locator('button[type="submit"]')
     await expect(submitButton).toBeDisabled()
 
-    // Verify security note is visible
-    await expect(page.locator('text=Security Note')).toBeVisible()
-    await expect(page.locator('text=Your Personal Access Token is encrypted')).toBeVisible()
+    // The security note says truthfully where the token is kept and who can read it
+    const securityNote = page.locator('.v-alert', { hasText: 'Security Note' })
+    await expect(securityNote).toBeVisible()
+    await expect(securityNote).toContainText('for this tab only')
+    await expect(securityNote).toContainText("It's sent only to your GitLab instance.")
+    await expect(securityNote).toContainText("It isn't encrypted.")
+    await expect(securityNote).toContainText('Set an expiry date on the token')
+    await expect(securityNote).not.toContainText('never leaves your device')
   })
 
   test('should enable submit button when token is entered', async ({ page }) => {

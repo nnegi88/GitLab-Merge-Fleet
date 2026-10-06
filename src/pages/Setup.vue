@@ -95,10 +95,12 @@
           class="mt-6"
         >
           <div class="font-weight-medium mb-2">Security Note</div>
-          <div>
-            Your Personal Access Token is encrypted and stored locally in your browser. 
-            It never leaves your device and is not sent to any external servers.
-          </div>
+          <ul class="list-disc pl-5">
+            <li class="mb-1">Your token stays in this browser: for this tab only, or until you sign out if you choose "Remember on this device".</li>
+            <li class="mb-1">It's sent only to your GitLab instance.</li>
+            <li class="mb-1">It isn't encrypted. Anything that can run code on this web address, or anyone with access to your browser profile, can read it.</li>
+            <li class="mb-1">Set an expiry date on the token, so a leaked one stops working.</li>
+          </ul>
         </v-alert>
       </v-card-text>
     </v-card>
