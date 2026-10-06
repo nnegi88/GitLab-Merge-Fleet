@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mountWithPlugins, createMockLocalStorage } from '../../utils/testHelpers.js'
 import Settings from '../../../src/pages/Settings.vue'
 import { useAuthStore } from '../../../src/stores/authStore.js'
@@ -21,12 +21,6 @@ describe('Settings.vue', () => {
     mockLocalStorage = createMockLocalStorage()
     global.localStorage = mockLocalStorage
     vi.clearAllMocks()
-  })
-
-  afterEach(() => {
-    if (wrapper) {
-      wrapper.unmount()
-    }
   })
 
   describe('Rendering', () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mountWithPlugins } from '../../utils/testHelpers.js'
 import Dashboard from '../../../src/pages/Dashboard.vue'
 import { useAuthStore } from '../../../src/stores/authStore.js'
@@ -18,12 +18,6 @@ describe('Dashboard.vue', () => {
   beforeEach(() => {
     wrapper = null
     vi.clearAllMocks()
-  })
-
-  afterEach(() => {
-    if (wrapper) {
-      wrapper.unmount()
-    }
   })
 
   describe('Not Connected State', () => {
