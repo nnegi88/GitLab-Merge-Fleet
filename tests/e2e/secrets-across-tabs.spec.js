@@ -44,7 +44,8 @@ test.describe('Secrets across tabs', () => {
 
     await page.getByTitle('Logout').click()
 
-    await expect(otherTab.getByText('Not Connected')).toBeVisible()
+    // The other tab is signed out too, and goes to setup as this one does
+    await expect(otherTab).toHaveURL(/#\/setup$/)
     expect(await otherTab.evaluate(() => localStorage.getItem('gitlab-token'))).toBeNull()
   })
 

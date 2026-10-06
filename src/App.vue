@@ -20,7 +20,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from './components/Layout.vue'
 import GlobalErrorBanner from './components/GlobalErrorBanner.vue'
@@ -49,5 +49,12 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('storage', authStore.syncFromStorage)
+})
+
+// Losing the token, e.g. after signing out in another tab, leads to setup, as signing out here does
+watch(() => authStore.token, (token) => {
+  if (!token && router.currentRoute.value.name !== 'setup') {
+    router.push('/setup')
+  }
 })
 </script>

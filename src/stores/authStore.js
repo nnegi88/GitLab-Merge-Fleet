@@ -134,16 +134,21 @@ export const useAuthStore = defineStore('auth', {
     syncFromStorage({ key, newValue, storageArea }) {
       if (storageArea !== localStorage) return
 
+      // key is null when another tab cleared all of localStorage
       if (key === SETTINGS_KEY || key === null) {
         const settings = parseSettings(newValue)
+        // Before the early return below, so a URL change syncs on its own
         if (settings.gitlabUrl) this.gitlabUrl = settings.gitlabUrl
 
         const remember = settings.remember === true
         if (remember === this.remember) return
         this.remember = remember
-        if (remember) {
-          // Remembering now: this tab's secrets are the ones on the device
-          for (const name of Object.keys(SECRET_KEYS)) this.adoptSecret(name, readSecret(true, name))
+        if (key === null) {
+          // The remembered secrets are gone from the device, so this tab forgets them too
+          for (const name of Object.keys(SECRET_KEYS)) this.adoptSecret(name, null)
+        } else if (remember) {
+          // Remembering now: take the device's secrets, keeping this tab's own where it has none
+          for (const name of Object.keys(SECRET_KEYS)) this.adoptSecret(name, readSecret(true, name) || this[name])
         } else {
           // No longer remembering: keep this tab's secrets for this tab, like the tab that chose it
           for (const name of Object.keys(SECRET_KEYS)) writeSecret(false, name, this[name])
