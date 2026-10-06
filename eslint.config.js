@@ -24,11 +24,22 @@ export default [
       'vue/multi-word-component-names': 'off',
       'vue/component-name-in-template-casing': ['error', 'PascalCase'],
       'vue/component-definition-name-casing': ['error', 'PascalCase'],
-      'no-unused-vars': ['error', { 
+      // Untrusted HTML goes through <MarkdownContent>, the one sanctioned v-html
+      'vue/no-v-html': 'error',
+      'no-unused-vars': ['error', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_'
       }],
       'no-console': ['warn', { allow: ['warn', 'error'] }]
+    }
+  },
+  // MarkdownContent is the one sanctioned v-html: it renders through the sanitizing renderer.
+  // Disabled here rather than with a template comment, which would make the component a
+  // fragment in dev builds and drop the class a page passes to it.
+  {
+    files: ['src/components/MarkdownContent.vue'],
+    rules: {
+      'vue/no-v-html': 'off'
     }
   },
   // Node.js config for the server and tool config files

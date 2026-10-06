@@ -608,6 +608,85 @@ Approve with minor suggestions. Great work!`
     await expect(page.locator('.markdown-content')).toBeVisible()
   })
 
+  test('should render a malicious AI review as inert text', async ({ page }) => {
+    // Gemini's reply can contain anything an MR author puts in the prompt
+    const maliciousReview = [
+      '## Summary',
+      'Looks fine.',
+      '',
+      '<img src="x" onerror="window.__xss = \'img\'">',
+      '',
+      'Avoid <b onmouseover="window.__xss = \'hover\'">this</b> pattern',
+      '',
+      '[Read the docs](javascript:window.__xss=\'link\')',
+      '',
+      '![diagram](https://attacker.example/pixel.png)'
+    ].join('\n')
+
+    const attackerRequests = []
+    page.on('request', request => {
+      if (request.url().includes('attacker.example')) attackerRequests.push(request.url())
+    })
+
+    await loginViaSetup(page, { user: mockUser })
+    await page.evaluate(() => {
+      localStorage.setItem('gemini_api_key', 'test-gemini-api-key')
+    })
+
+    await page.route('**/api/v4/projects/100/merge_requests/10', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockMergeRequest)
+      })
+    })
+
+    await page.route('**/api/v4/projects/100/merge_requests/10/changes**', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockChanges)
+      })
+    })
+
+    await page.route('**/generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent**', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ candidates: [{ content: { parts: [{ text: maliciousReview }] } }] })
+      })
+    })
+
+    await page.goto('/#/mr/100/10')
+    await page.locator('button:has-text("Start AI Review")').click()
+
+    const review = page.locator('.markdown-content')
+    await expect(review).toContainText('Looks fine.', { timeout: 5000 })
+    // Give any injected handler (e.g. a broken image's onerror) the chance to fire
+    await page.waitForLoadState('networkidle')
+
+    // Nothing ran and nothing was fetched from the attacker's host
+    expect(await page.evaluate(() => window.__xss)).toBeUndefined()
+    expect(attackerRequests).toEqual([])
+
+    // Raw HTML shows as text instead of becoming elements
+    await expect(review).toContainText('<img src="x" onerror="window.__xss = \'img\'">')
+    await expect(review).toContainText('Avoid <b onmouseover="window.__xss = \'hover\'">this</b> pattern')
+    await expect(review.locator('img')).toHaveCount(0)
+
+    // The javascript: link keeps its text but goes nowhere
+    const link = review.locator('a', { hasText: 'Read the docs' })
+    expect(await link.getAttribute('href')).toBeNull()
+    await link.click()
+    expect(await page.evaluate(() => window.__xss)).toBeUndefined()
+
+    // The image is a link to its URL, opening in a new tab, instead of loading
+    const imageLink = review.locator('a', { hasText: 'diagram' })
+    await expect(imageLink).toHaveAttribute('href', 'https://attacker.example/pixel.png')
+    await expect(imageLink).toHaveAttribute('target', '_blank')
+    await expect(imageLink).toHaveAttribute('rel', 'noopener noreferrer')
+  })
+
   test('should copy review to clipboard', async ({ page }) => {
     await loginViaSetup(page, { user: mockUser })
 

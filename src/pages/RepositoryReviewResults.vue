@@ -162,7 +162,7 @@
             </div>
             
             <div v-if="viewMode === 'rendered'" class="markdown-content">
-              <div v-html="renderMarkdown(getSectionContent(key))"></div>
+              <MarkdownContent :source="getSectionContent(key)" />
             </div>
             <div v-else>
               <pre class="bg-grey-lighten-5 pa-4 rounded text-body-2" style="white-space: pre-wrap; overflow-x: auto;">{{ getSectionContent(key) }}</pre>
@@ -215,9 +215,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { marked } from 'marked'
 import { formatDistanceToNow } from '../utils/dateUtils'
 import { useClipboard } from '../hooks/useClipboard'
+import MarkdownContent from '../components/MarkdownContent.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -285,17 +285,6 @@ onMounted(() => {
     }
   }
 })
-
-function renderMarkdown(content) {
-  if (!content) return '<p>No content available</p>'
-  
-  try {
-    return marked(content)
-  } catch (error) {
-    console.error('Markdown rendering error:', error)
-    return `<pre>${content}</pre>`
-  }
-}
 
 function getSectionContent(sectionKey) {
   return reviewData.value?.reviewResult?.sections?.[sectionKey] || 'No content available for this section.'
