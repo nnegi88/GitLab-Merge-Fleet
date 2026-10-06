@@ -224,6 +224,7 @@ In addition to automated tests, please verify:
 - These PRs are merged by hand once the Test Suite (including E2E) is green. Claude Code Review and the coverage comment are skipped for them.
 - CI fails if a runtime dependency has a high or critical advisory (`npm audit --omit=dev --audit-level=high`). Dev-only advisories are left to Dependabot.
 - An alert that can't be fixed is dismissed in the Dependabot UI with a written reason, never left open.
+- `overrides` in `package.json` forces `postcss-selector-parser` to `^7.1.6` under Tailwind 3, which asks for `^6.1.2`. The 6.x line has no fix for GHSA-rj75-hqrm-r3gf. The built CSS was byte-identical with 6.1.4 and 7.1.6. Remove the override when moving to Tailwind 4.
 
 ## Feature Requests & Bug Reports
 
