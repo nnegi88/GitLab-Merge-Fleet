@@ -21,10 +21,19 @@ import * as directives from 'vuetify/directives'
 export function createMockRouter(options = {}) {
   const { routes = [], initialRoute = '/' } = options
 
+  // Mirrors the app's routes in src/main.js. A link or navigation to a path the
+  // router doesn't know logs a Vue Router warning, and a warning still in flight
+  // when Vitest closes a test file's worker fails the run (EnvironmentTeardownError).
   const defaultRoutes = [
     { path: '/', name: 'home', component: { template: '<div>Home</div>' } },
+    { path: '/setup', name: 'setup', component: { template: '<div>Setup</div>' } },
     { path: '/settings', name: 'settings', component: { template: '<div>Settings</div>' } },
+    { path: '/bulk-create', name: 'bulk-create', component: { template: '<div>Bulk Create</div>' } },
+    { path: '/bulk-branch', name: 'bulk-branch', component: { template: '<div>Bulk Branch</div>' } },
     { path: '/mr/:projectId/:mrIid', name: 'merge-request-details', component: { template: '<div>MR Details</div>' } },
+    { path: '/repository-review', name: 'repository-review', component: { template: '<div>Repository Review</div>' } },
+    { path: '/repository-review/results', name: 'repository-review-results', component: { template: '<div>Repository Review Results</div>' } },
+    { path: '/:pathMatch(.*)*', name: 'not-found', component: { template: '<div>Not Found</div>' } },
     ...routes
   ]
 

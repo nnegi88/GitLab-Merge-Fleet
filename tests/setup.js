@@ -3,6 +3,8 @@
  * Runs before all test suites
  */
 
+import { enableAutoUnmount } from '@vue/test-utils'
+
 // Mock localStorage
 const localStorageMock = (() => {
   let store = {}
@@ -135,4 +137,13 @@ if (typeof beforeEach !== 'undefined') {
       sessionStorage.clear()
     }
   })
+}
+
+// Unmount every component a test mounted once the test ends. A component left
+// mounted keeps re-rendering, and its router keeps navigating, after the test;
+// anything either of them logs while Vitest closes the worker fails the run
+// (EnvironmentTeardownError). Unmounting also cancels a pending navigation, so
+// it can't finish after the DOM is gone and read the missing `history` global.
+if (typeof afterEach !== 'undefined') {
+  enableAutoUnmount(afterEach)
 }
